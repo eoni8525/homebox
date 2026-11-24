@@ -1,5 +1,5 @@
 // 인터넷이 없어도 열리게: 앱 파일은 저장해 두고, 새 버전이 있으면 다음에 열 때 바뀐다
-const CACHE='closet-202611242158';
+const CACHE='closet-202611242208';
 const SHELL=['./','index.html','qrcode.js','jsQR.js','manifest.webmanifest','icons/icon-192.png','icons/icon-512.png'];
 self.addEventListener('install',e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(SHELL)).then(()=>self.skipWaiting()))});
 self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});

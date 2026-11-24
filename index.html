@@ -127,6 +127,23 @@ nav.tabs button.add .i{width:46px;height:46px;border-radius:50%;background:var(-
 .lblpick .opt{display:flex;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)}
 .lblpick input{width:20px;height:20px}
 #printArea{display:none}
+.lockbg{position:fixed;inset:0;z-index:95;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:24px max(16px,env(safe-area-inset-left,0px))}
+.lockbox{width:100%;max-width:340px;text-align:center}
+.lockbox .ic{font-size:40px;margin-bottom:6px}
+.lockbox h2{margin:0 0 6px;font-size:21px}
+.lockbox p{color:var(--muted);font-size:14px;margin:0 0 14px}
+.lockbox input{width:100%;text-align:center;font-size:22px;letter-spacing:6px;border:1px solid var(--line);background:var(--card);border-radius:12px;padding:12px;margin-bottom:8px}
+.lockbox input:focus{outline:2px solid var(--accent);border-color:transparent}
+.lockbox .link{border:0;background:transparent;color:var(--muted);font-size:13.5px;text-decoration:underline;margin-top:12px;padding:6px}
+.lockbox .err{color:var(--bad);font-size:14px;min-height:1.4em}
+.airow{display:flex;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)}
+.airow input[type=checkbox]{width:20px;height:20px;flex:none}
+.airow canvas,.airow .ph{width:52px;height:52px;border-radius:8px;flex:none;object-fit:cover;background:var(--field)}
+.airow .fs{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
+.airow .fs input,.airow .fs select{width:100%;border:1px solid transparent;background:var(--field);border-radius:8px;padding:7px 9px;font-size:15px}
+.spin{display:inline-block;width:18px;height:18px;border:3px solid var(--accent-2);border-top-color:var(--accent);border-radius:50%;animation:sp 1s linear infinite;vertical-align:-3px;margin-right:6px}
+@keyframes sp{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.spin{animation:none}}
 @media print{
   @page{size:A4;margin:10mm}
   body{background:#fff;padding:0}
@@ -169,7 +186,7 @@ nav.tabs button.add .i{width:46px;height:46px;border-radius:50%;background:var(-
 <script>
 (function(){
 'use strict';
-const VERSION='2026.11.24-2158';
+const VERSION='2026.11.24-2208';
 const PREVIEW='0'==='1'; // Claude 미리보기: 카메라·인쇄·파일 내려받기가 막혀 있음
 const $=id=>document.getElementById(id);
 const el=(tag,attrs,...kids)=>{const e=document.createElement(tag);if(attrs)for(const k in attrs){const v=attrs[k];if(v==null||v===false)continue;if(k==='class')e.className=v;else if(k==='text')e.textContent=v;else if(k==='html')e.innerHTML=v;else if(k.startsWith('on'))e.addEventListener(k.slice(2),v);else if(k==='style')e.style.cssText=v;else e.setAttribute(k,v===true?'':v)}kids.flat().forEach(c=>{if(c==null||c===false)return;e.append(c.nodeType?c:String(c))});return e};
@@ -197,7 +214,8 @@ const phGet=async id=>P((await store('photos')).get(id));
 const phSet=async(id,v)=>P((await store('photos','readwrite')).put(v,id));
 const phDel=async id=>P((await store('photos','readwrite')).delete(id));
 
-const BLANK=()=>({v:1,name:'우리집 보관함',rooms:[],boxes:[],items:[],people:[],seq:0,lastBackup:0});
+const BLANK=()=>({v:1,name:'우리집 보관함',rooms:[],boxes:[],items:[],people:[],seq:0,lastBackup:0,deleted:{}});
+const tomb=id=>{S.deleted=S.deleted||{};S.deleted[id]=Date.now()};
 let S=BLANK();
 let saveT=null;
 function changed(){clearTimeout(saveT);saveT=setTimeout(save,300)}
@@ -211,7 +229,8 @@ async function thumbURL(id,full){const key=id+(full?':f':'');if(urlCache.has(key
 function fillPhotos(root){root.querySelectorAll('img[data-ph]').forEach(async img=>{const u=await thumbURL(img.dataset.ph,img.dataset.full==='1');if(u){img.src=u;img.hidden=false}})}
 function phEl(photoId,full,fallback){const box=el('div',{class:'ph'});if(photoId){const i=el('img',{alt:'','data-ph':photoId,'data-full':full?'1':null,hidden:true});box.append(i)}else box.append(fallback||'🏷️');return box}
 function loadImg(file){return new Promise((res,rej)=>{const u=URL.createObjectURL(file);const i=new Image();i.onload=()=>{res(i);setTimeout(()=>URL.revokeObjectURL(u),1000)};i.onerror=()=>{URL.revokeObjectURL(u);rej(new Error('사진을 열 수 없어요'))};i.src=u})}
-function shrink(img,max,q){const s=Math.min(1,max/Math.max(img.naturalWidth,img.naturalHeight));const c=document.createElement('canvas');c.width=Math.max(1,Math.round(img.naturalWidth*s));c.height=Math.max(1,Math.round(img.naturalHeight*s));c.getContext('2d').drawImage(img,0,0,c.width,c.height);return new Promise(r=>c.toBlob(b=>r(b),'image/jpeg',q))}
+function shrink(img,max,q){const W=img.naturalWidth||img.width,H=img.naturalHeight||img.height;const s=Math.min(1,max/Math.max(W,H));const c=document.createElement('canvas');c.width=Math.max(1,Math.round(W*s));c.height=Math.max(1,Math.round(H*s));c.getContext('2d').drawImage(img,0,0,c.width,c.height);return new Promise(r=>c.toBlob(b=>r(b),'image/jpeg',q))}
+async function savePhotoFrom(img){const full=await shrink(img,1280,.82),thumb=await shrink(img,320,.72);const id='p'+uid();await phSet(id,{full,thumb});askPersist();return id}
 async function savePhoto(file){const img=await loadImg(file);const full=await shrink(img,1280,.82),thumb=await shrink(img,320,.72);const id='p'+uid();await phSet(id,{full,thumb});askPersist();return id}
 async function dropPhoto(id){if(!id)return;['',':f'].forEach(s=>{const u=urlCache.get(id+s);if(u){URL.revokeObjectURL(u);urlCache.delete(id+s)}});await phDel(id).catch(()=>{})}
 let persistAsked=false;
@@ -299,6 +318,7 @@ function vBox(m){
   m.append(el('div',{class:'boxhead',style:'background:'+c[2]},el('div',{class:'code'},'#'+pad(b.code)),el('div',{},el('div',{class:'nm'},b.name||'이름 없는 수납함'),el('div',{class:'rm'},[r?r.name:'방 미정',c[1]+' 라벨',b.note].filter(Boolean).join(' · ')))));
   const L=inBox(b.id);
   m.append(el('div',{class:'btns',style:'margin:10px 0'},el('button',{class:'btn',type:'button',onclick:()=>itemSheet(null,{boxId:b.id})},'+ 물건 넣기'),el('button',{class:'btn soft',type:'button',onclick:()=>manySheet({boxId:b.id})},'여러 개'),el('button',{class:'btn ghost',type:'button',onclick:()=>go({name:'labels',only:[b.id]})},'QR 라벨')));
+  m.append(el('button',{class:'btn ghost wide',type:'button',style:'margin-bottom:6px',onclick:()=>aiStart(b.id)},'📷 사진 한 장 → AI가 물건 찾아 넣기'));
   if(b.photoId){m.append(el('h2',{class:'sec'},'상자 속 사진'));const bp=el('div',{class:'big-ph'},el('img',{alt:'상자 속 사진','data-ph':b.photoId,'data-full':'1',hidden:true}));m.append(bp)}
   m.append(el('h2',{class:'sec'},'들어 있는 것',el('span',{class:'cnt'},L.length+'개')));
   if(!L.length){m.append(el('div',{class:'empty'},'아직 비어 있어요. "+ 물건 넣기"로 넣거나, 물건 화면에서 이 상자로 옮겨요.'));return}
@@ -351,14 +371,21 @@ function vSettings(m){
   const card=(t,p,...kids)=>el('div',{class:'setcard'},el('h4',{},t),p?el('p',{},p):null,...kids);
   const nm=el('input',{class:'inp',type:'text',value:S.name,maxlength:'20'});
   m.append(card('보관함 이름','맨 위에 보이는 이름이에요.',el('div',{class:'tagrow'},nm,el('button',{type:'button',onclick:()=>{S.name=nm.value.trim()||'우리집 보관함';changed();toast('이름을 바꿨어요');document.title=S.name}},'저장'))));
-  m.append(card('방(장소)','수납함을 방별로 묶어 보여 줘요. 예: 안방 옷장, 아이방, 베란다 창고',listEditor(S.rooms,r=>r.name,(r,v)=>{r.name=v},()=>roomSheet(),async r=>{const n=S.boxes.filter(b=>b.roomId===r.id).length;if(n&&!await ask('"'+r.name+'" 지우기','이 방의 수납함 '+n+'개는 "방 미정"으로 옮겨져요.','지우기'))return false;S.rooms=S.rooms.filter(x=>x!==r);return true},true)));
+  m.append(card('방(장소)','수납함을 방별로 묶어 보여 줘요. 예: 안방 옷장, 아이방, 베란다 창고',listEditor(S.rooms,r=>r.name,(r,v)=>{r.name=v;r.updated=Date.now()},()=>roomSheet(),async r=>{const n=S.boxes.filter(b=>b.roomId===r.id).length;if(n&&!await ask('"'+r.name+'" 지우기','이 방의 수납함 '+n+'개는 "방 미정"으로 옮겨져요.','지우기'))return false;tomb(r.id);S.rooms=S.rooms.filter(x=>x!==r);return true},true)));
   m.append(card('누구 것','가족 이름을 넣으면 물건마다 누구 것인지 고르고, 사람별로 모아 볼 수 있어요.',listEditor(S.people.map(p=>({p})),o=>o.p,(o,v)=>{const i=S.people.indexOf(o.p);if(i>=0){S.items.forEach(it=>{if(it.owner===o.p)it.owner=v});S.people[i]=v;o.p=v}},async()=>{const v=await askText('가족 이름 추가','예: 엄마, 선우');if(v&&!S.people.includes(v)){S.people.push(v);changed();render()}},o=>{S.people=S.people.filter(x=>x!==o.p);return true},false)));
   m.append(card('QR 라벨 인쇄','A4 스티커 용지에 수납함 라벨을 한 번에 뽑아요. 폰 카메라로 라벨을 찍으면 이 앱에서 그 수납함이 열려요.',el('button',{class:'btn wide',type:'button',onclick:()=>go({name:'labels'})},'라벨 고르고 인쇄하기')));
+  if(!PREVIEW){const L=lockGet();const lm=el('div',{class:'msg'});
+    m.append(card('이 폰 잠금',L&&L.on?'켜져 있어요. 앱을 열 때와 다른 앱에 3분 넘게 갔다 올 때 비밀번호를 물어요.':'꺼져 있어요. 켜면 앱을 열 때 비밀번호를 물어요.',
+      L&&L.on?el('div',{class:'btns'},el('button',{class:'btn soft',type:'button',onclick:()=>lockChange(lm)},'비밀번호 바꾸기'),el('button',{class:'btn ghost',type:'button',onclick:()=>lockOff(lm)},'잠금 끄기')):el('button',{class:'btn wide',type:'button',onclick:()=>lockScreen('setup')},'잠금 켜기'),lm))}
+  {const has=!!aiKey();const am=el('div',{class:'msg'});const ki=el('input',{class:'inp',type:'password',placeholder:has?'저장됨 (바꾸려면 새 키 넣기)':'sk-ant-로 시작하는 키',autocomplete:'off',id:'aiKeyIn'});
+    m.append(card('AI로 한 번에 넣기','상자 안이나 펼쳐 놓은 물건을 사진 한 장으로 찍으면, AI(Claude)가 물건을 하나씩 찾아 이름·종류를 채워 줘요. 쓰려면 Anthropic API 키가 필요해요(console.anthropic.com 에서 발급·충전, 사진 1장에 대략 수십 원). 키는 이 폰에만 저장되고, 사진은 분석할 때만 Anthropic으로 보내져요.',
+      el('div',{class:'tagrow'},ki,el('button',{type:'button',onclick:()=>{const v=ki.value.trim();if(!/^sk-ant-/.test(v)){am.textContent='sk-ant- 로 시작하는 API 키를 넣어 주세요.';return}aiKey(v);ki.value='';am.textContent='저장했어요. 수납함 화면이나 + 에서 "AI가 물건 찾아 넣기"를 눌러 보세요.';render()}},'저장')),
+      has?el('button',{class:'btn ghost wide',type:'button',onclick:()=>{aiKey('');toast('키를 지웠어요');render()}},'키 지우기'):null,am))}
   const bm=el('div',{class:'msg'});
   const last=S.lastBackup?new Date(S.lastBackup).toLocaleDateString('ko-KR'):'아직 안 함';
-  m.append(card('백업 · 다른 폰으로 옮기기','기록과 사진은 이 폰 안에만 있어요. 폰을 바꾸거나 인터넷 기록을 지우면 사라지니 가끔 백업 파일을 저장해 두세요. 마지막 백업: '+last,
+  m.append(card('백업 · 가족과 나누기','기록과 사진은 이 폰 안에만 있어요. 가끔 백업 파일을 저장해 두세요. 가족이 같이 보려면: 한 사람이 "사진까지 저장"으로 파일을 카톡 등으로 보내고, 받은 사람이 "받은 파일 불러오기" → "합치기"를 누르면 두 폰의 기록이 하나로 합쳐져요. 마지막 백업: '+last+(S.lastMerge?' · 마지막 합치기: '+new Date(S.lastMerge).toLocaleDateString('ko-KR'):''),
     el('div',{class:'btns'},el('button',{class:'btn',type:'button',onclick:()=>doBackup(true,bm)},'사진까지 저장'),el('button',{class:'btn soft',type:'button',onclick:()=>doBackup(false,bm)},'글만 저장(가벼움)')),
-    el('div',{class:'btns',style:'margin-top:8px'},el('button',{class:'btn ghost',type:'button',onclick:()=>doRestore(bm)},'백업 불러오기')),bm));
+    el('div',{class:'btns',style:'margin-top:8px'},el('button',{class:'btn ghost',type:'button',onclick:()=>doRestore(bm)},'받은 파일 불러오기')),bm));
   const sm=el('div',{class:'msg'},'확인 중…');
   m.append(card('저장 공간',null,sm));
   (async()=>{try{const e=navigator.storage&&navigator.storage.estimate?await navigator.storage.estimate():null;const per=navigator.storage&&navigator.storage.persisted?await navigator.storage.persisted():false;sm.textContent='물건 '+keep().length+'개 · 수납함 '+S.boxes.length+'개 · 정리한 물건 '+(S.items.length-keep().length)+'개'+(e?' · 사용 '+(e.usage/1048576).toFixed(1)+'MB':'')+(per?' · 자동 삭제 안 되게 보호됨':'')}catch(err){sm.textContent='물건 '+keep().length+'개 · 수납함 '+S.boxes.length+'개'}})();
@@ -383,7 +410,7 @@ function sheet(title,build,onClose){
   return close;
 }
 function ask(title,msg,ok){return new Promise(res=>{let done=false;const fin=v=>{if(!done){done=true;res(v)}};const c=sheet(title,(sh,close)=>{sh.append(el('p',{style:'margin:0 0 14px;white-space:pre-line'},msg),el('div',{class:'btns'},el('button',{class:'btn ghost',type:'button',onclick:()=>{fin(false);close()}},'취소'),el('button',{class:'btn',type:'button',onclick:()=>{fin(true);close()}},ok||'확인')))},()=>fin(false))})}
-function askText(title,ph){return new Promise(res=>{let done=false;const fin=v=>{if(!done){done=true;res(v)}};sheet(title,(sh,close)=>{const i=el('input',{class:'inp',type:'text',placeholder:ph||'',maxlength:'30'});const ok=()=>{const v=i.value.trim();if(!v){i.focus();return}fin(v);close()};i.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();ok()}});sh.append(i,el('button',{class:'btn wide',type:'button',style:'margin-top:12px',onclick:ok},'추가'));setTimeout(()=>i.focus(),60)},()=>fin(null))})}
+function askText(title,ph,o){o=o||{};return new Promise(res=>{let done=false;const fin=v=>{if(!done){done=true;res(v)}};sheet(title,(sh,close)=>{const i=el('input',{class:'inp',type:o.pw?'password':'text',inputmode:o.pw?'numeric':null,autocomplete:'off',placeholder:ph||'',maxlength:'30'});const ok=()=>{const v=i.value.trim();if(!v){i.focus();return}fin(v);close()};i.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();ok()}});sh.append(i,el('button',{class:'btn wide',type:'button',style:'margin-top:12px',onclick:ok},o.ok||'추가'));setTimeout(()=>i.focus(),60)},()=>fin(null))})}
 const field=(label,input)=>el('div',{class:'f'},el('label',{},label),input);
 function chipPick(opts,val,multi,onChange){const r=el('div',{class:'chips'});let cur=multi?new Set(val||[]):val||'';const draw=()=>{r.textContent='';opts.forEach(o=>{const on=multi?cur.has(o):cur===o;r.append(el('button',{class:'chip',type:'button','aria-pressed':String(on),onclick:()=>{if(multi){on?cur.delete(o):cur.add(o);onChange(opts.filter(x=>cur.has(x)))}else{cur=on?'':o;onChange(cur)}draw()}},o))})};draw();return r}
 function boxSelect(val,onChange){
@@ -420,12 +447,12 @@ function boxSheet(id,roomId,onMade){
     const pv=el('div',{class:'photo-pick'});const drawP=()=>{pv.textContent='';pv.append(phEl(d.photoId,false,'📦'),el('div',{class:'btns'},el('button',{class:'btn soft',type:'button',onclick:async()=>{const f=await pickFile($('fileCam'));if(f[0]){const old=d.photoId;d.photoId=await savePhoto(f[0]);if(old&&old!==(b&&b.photoId))dropPhoto(old);drawP()}}},'상자 속 사진 찍기'),d.photoId?el('button',{class:'btn ghost',type:'button',onclick:()=>{d.photoId='';drawP()}},'사진 빼기'):null));fillPhotos(pv)};drawP();
     sh.append(el('div',{class:'f'},el('div',{class:'lb'},'상자 속 사진 (선택) — 하나씩 안 넣어도 안에 뭐가 있는지 보여요'),pv));
     sh.append(el('button',{class:'btn wide',type:'button',onclick:()=>{
-      const o={name:nm.value.trim(),roomId:rs.value,color:d.color,note:nt.value.trim(),photoId:d.photoId};
+      const o={name:nm.value.trim(),roomId:rs.value,color:d.color,note:nt.value.trim(),photoId:d.photoId,updated:Date.now()};
       if(b){if(b.photoId&&b.photoId!==o.photoId)dropPhoto(b.photoId);Object.assign(b,o);changed();close();render();return}
       S.seq=(S.seq||0)+1;const nb={id:'b'+uid(),code:S.seq,...o};S.boxes.push(nb);changed();close();
       if(onMade)onMade(nb.id);else{toast('#'+pad(nb.code)+' 수납함을 만들었어요');go({name:'box',id:nb.id})}
     }},b?'저장':'만들기'));
-    if(b){const del=el('button',{class:'btn bad wide',type:'button',style:'margin-top:8px',onclick:()=>{const n=inBox(b.id).length;if(!del.dataset.sure){del.dataset.sure='1';del.textContent=n?'한 번 더 누르면 지워져요 (안의 '+n+'개는 위치 미정으로)':'한 번 더 누르면 지워져요';return}S.items.forEach(i=>{if(i.boxId===b.id)i.boxId=''});if(b.photoId)dropPhoto(b.photoId);S.boxes=S.boxes.filter(x=>x!==b);changed();close();tabGo('home')}},'이 수납함 지우기');sh.append(del)}
+    if(b){const del=el('button',{class:'btn bad wide',type:'button',style:'margin-top:8px',onclick:()=>{const n=inBox(b.id).length;if(!del.dataset.sure){del.dataset.sure='1';del.textContent=n?'한 번 더 누르면 지워져요 (안의 '+n+'개는 위치 미정으로)':'한 번 더 누르면 지워져요';return}S.items.forEach(i=>{if(i.boxId===b.id)i.boxId=''});if(b.photoId)dropPhoto(b.photoId);tomb(b.id);S.boxes=S.boxes.filter(x=>x!==b);changed();close();tabGo('home')}},'이 수납함 지우기');sh.append(del)}
     if(!b)setTimeout(()=>nm.focus(),60);
   });
 }
@@ -475,7 +502,7 @@ function itemDetail(it){
     }else{
       if(it.exit&&it.exit.type==='sell')sh.append(el('button',{class:'btn soft wide',type:'button',onclick:()=>copySell(it,it.exit.price)},'당근 판매 글 다시 복사'));
       sh.append(el('button',{class:'btn wide',type:'button',style:'margin-top:8px',onclick:()=>{it.status='keep';it.boxId=boxOf(it.lastBoxId)?it.lastBoxId:'';it.updated=Date.now();changed();close();render();toast('보관함으로 되돌렸어요')}},'보관함으로 되돌리기'));
-      const del=el('button',{class:'btn bad wide',type:'button',style:'margin-top:8px',onclick:()=>{if(!del.dataset.sure){del.dataset.sure='1';del.textContent='한 번 더 누르면 사진까지 완전히 지워져요';return}if(it.photoId)dropPhoto(it.photoId);S.items=S.items.filter(x=>x!==it);changed();close();render()}},'완전히 지우기');sh.append(del);
+      const del=el('button',{class:'btn bad wide',type:'button',style:'margin-top:8px',onclick:()=>{if(!del.dataset.sure){del.dataset.sure='1';del.textContent='한 번 더 누르면 사진까지 완전히 지워져요';return}if(it.photoId)dropPhoto(it.photoId);tomb(it.id);S.items=S.items.filter(x=>x!==it);changed();close();render()}},'완전히 지우기');sh.append(del);
     }
   });
 }
@@ -514,6 +541,7 @@ function addMenu(){sheet('무엇을 할까요?',(sh,close)=>{
   sh.append(el('div',{class:'btns',style:'flex-direction:column'},
     el('button',{class:'btn',type:'button',onclick:()=>{close();itemSheet(null,{boxId:b})}},'물건 하나 넣기 (사진 찍기)'),
     el('button',{class:'btn soft',type:'button',onclick:()=>{close();manySheet({boxId:b})}},'사진 여러 장으로 한 번에 넣기'),
+    el('button',{class:'btn soft',type:'button',onclick:()=>{close();aiStart(b)}},'📷 사진 한 장 → AI가 물건 찾아 넣기'),
     el('button',{class:'btn ghost',type:'button',onclick:()=>{close();boxSheet()}},'수납함 만들기'),
     el('button',{class:'btn ghost',type:'button',onclick:()=>{close();roomSheet()}},'방(장소) 만들기')));
 })}
@@ -583,12 +611,126 @@ async function doRestore(msg){
   const f=(await pickFile($('fileBackup')))[0];if(!f)return;
   try{msg.textContent='읽는 중…';const j=JSON.parse(await f.text());if(!j||j.app!=='closet'||!j.state)throw new Error('보관함 백업 파일이 아니에요');
     const st=j.state,n=(st.items||[]).length;
-    if(!await ask('백업 불러오기','물건 '+n+'개, 수납함 '+(st.boxes||[]).length+'개'+(j.withPhotos?' (사진 포함)':' (사진 없음)')+'인 백업이에요.\n지금 이 폰의 기록은 이 백업으로 바뀌어요.','불러오기')){msg.textContent='';return}
-    const d=await openDB();await P(d.transaction('photos','readwrite').objectStore('photos').clear());urlCache.clear();
-    let k=0;const ids=Object.keys(j.photos||{});for(const id of ids){const p=j.photos[id];await phSet(id,{full:p.full?await dataToBlob(p.full):null,thumb:p.thumb?await dataToBlob(p.thumb):null});if(++k%20===0)msg.textContent='사진 넣는 중… '+k+'/'+ids.length}
-    if(!j.withPhotos){(st.items||[]).forEach(i=>i.photoId='');(st.boxes||[]).forEach(b=>b.photoId='')}
-    S=Object.assign(BLANK(),st);await save();msg.textContent='불러왔어요';toast('백업을 불러왔어요');document.title=S.name;tabGo('home');
+    const how=await new Promise(res=>{let done=false;const fin=v=>{if(!done){done=true;res(v)}};sheet('받은 파일 불러오기',(sh,close)=>{sh.append(el('p',{style:'margin:0 0 12px'},'물건 '+n+'개, 수납함 '+(st.boxes||[]).length+'개'+(j.withPhotos?' (사진 포함)':' (사진 없음)')+'인 파일이에요.'),
+      el('button',{class:'btn wide',type:'button',onclick:()=>{fin('merge');close()}},'합치기 (추천)'),el('p',{class:'msg',style:'margin:4px 0 12px'},'내 기록은 그대로 두고, 받은 파일에만 있는 것은 더하고, 둘 다 고친 것은 더 최근 것으로 맞춰요. 지운 것은 양쪽에서 지워져요.'),
+      el('button',{class:'btn ghost wide',type:'button',onclick:()=>{fin('replace');close()}},'받은 걸로 바꾸기'),el('p',{class:'msg',style:'margin:4px 0 0'},'이 폰의 기록을 지우고 받은 파일로 바꿔요. 새 폰으로 옮길 때 써요.'))},()=>fin(null))});
+    if(!how){msg.textContent='';return}
+    const putPhotos=async onlyMissing=>{let k=0;const ids=Object.keys(j.photos||{});for(const id of ids){if(onlyMissing&&await phGet(id).catch(()=>null))continue;const p=j.photos[id];await phSet(id,{full:p.full?await dataToBlob(p.full):null,thumb:p.thumb?await dataToBlob(p.thumb):null});if(++k%20===0)msg.textContent='사진 넣는 중… '+k+'/'+ids.length}};
+    if(how==='replace'){
+      const d=await openDB();await P(d.transaction('photos','readwrite').objectStore('photos').clear());urlCache.clear();await putPhotos(false);
+      if(!j.withPhotos){(st.items||[]).forEach(i=>i.photoId='');(st.boxes||[]).forEach(b=>b.photoId='')}
+      S=Object.assign(BLANK(),st);await save();msg.textContent='불러왔어요';toast('받은 파일로 바꿨어요');document.title=S.name;tabGo('home');return;
+    }
+    await putPhotos(true);
+    const r=await mergeState(st,j.photos||{});S.lastMerge=Date.now();await save();
+    msg.textContent='합쳤어요: 새로 '+r.added+'개, 바뀐 것 '+r.changed+'개'+(r.removed?', 지운 것 '+r.removed+'개':'');toast('합쳤어요');tabGo('home');
   }catch(e){msg.textContent='불러오지 못했어요: '+(e&&e.message||e)}
+}
+
+// ---------- 가족 합치기 ----------
+async function mergeState(st,photos){
+  const del=Object.assign({},S.deleted||{},st.deleted||{});let added=0,changed=0,removed=0;
+  const known=new Set([...S.rooms,...S.boxes,...S.items].map(x=>x.id));
+  const mergeArr=(a,b)=>{const m=new Map();a.forEach(x=>{if(del[x.id]){removed++;return}m.set(x.id,x)});(b||[]).forEach(x=>{if(del[x.id])return;const o=m.get(x.id);if(!o){m.set(x.id,x);if(!known.has(x.id))added++}else if((x.updated||0)>(o.updated||0)){m.set(x.id,x);changed++}});return [...m.values()]};
+  for(const x of [...(st.items||[]),...(st.boxes||[])])if(x.photoId&&!photos[x.photoId]&&!await phGet(x.photoId).catch(()=>null))x.photoId='';
+  S.rooms=mergeArr(S.rooms,st.rooms);S.boxes=mergeArr(S.boxes,st.boxes);S.items=mergeArr(S.items,st.items);
+  S.people=[...new Set([...(S.people||[]),...(st.people||[])])];
+  let seq=Math.max(S.seq||0,st.seq||0);const seen=new Set();S.boxes.slice().sort((a,b)=>(a.updated||0)-(b.updated||0)).forEach(b=>{if(seen.has(b.code))b.code=++seq;seen.add(b.code)});S.seq=Math.max(seq,...S.boxes.map(b=>b.code),0);
+  S.deleted=del;return {added,changed,removed};
+}
+
+// ---------- 이 폰 잠금 ----------
+const LOCKK='homebox-lock';
+function lockGet(){try{return JSON.parse(localStorage.getItem(LOCKK)||'null')}catch(e){return null}}
+function lockSet(v){try{localStorage.setItem(LOCKK,JSON.stringify(v))}catch(e){}}
+async function sha(t){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(t));return Array.from(new Uint8Array(b)).map(x=>x.toString(16).padStart(2,'0')).join('')}
+async function pinOK(pin){const L=lockGet();return !!L&&L.on&&(await sha(L.salt+':'+pin))===L.hash}
+async function pinSave(pin){const salt=uid()+uid();lockSet({on:true,salt,hash:await sha(salt+':'+pin)})}
+let hiddenAt=0,lockOpen=false;
+function lockScreen(mode){
+  if(lockOpen)return;lockOpen=true;
+  const bg=el('div',{class:'lockbg',role:'dialog','aria-modal':'true'});const box=el('div',{class:'lockbox'});bg.append(box);
+  const err=el('div',{class:'err',role:'alert'});const done=()=>{bg.remove();lockOpen=false;render()};
+  const pinInput=ph=>el('input',{type:'password',inputmode:'numeric',autocomplete:'off',placeholder:ph,maxlength:'12'});
+  if(mode==='setup'){
+    const a=pinInput('숫자 4자리 이상'),b=pinInput('한 번 더');
+    const go=async()=>{const v=a.value.trim();if(!/^\d{4,12}$/.test(v)){err.textContent='숫자 4~12자리로 정해 주세요.';a.focus();return}if(v!==b.value.trim()){err.textContent='두 번 적은 비밀번호가 달라요.';b.value='';b.focus();return}await pinSave(v);toast('잠금을 걸었어요');done()};
+    [a,b].forEach(x=>x.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();x===a?b.focus():go()}}));
+    box.append(el('div',{class:'ic'},'🔒'),el('h2',{},'잠금 비밀번호 정하기'),el('p',{},'앱을 열 때 이 비밀번호를 물어요. 잊으면 찾을 수 없으니 꼭 기억하고 가끔 백업해 두세요.'),a,b,err,el('button',{class:'btn wide',type:'button',onclick:go},'잠금 걸기'),
+      el('button',{class:'link',type:'button',onclick:()=>{if(!lockGet())lockSet({on:false});done()}},lockGet()?'취소':'잠금 없이 쓰기'));
+    document.body.append(bg);setTimeout(()=>a.focus(),60);return;
+  }
+  const a=pinInput('비밀번호');let tries=0;
+  const go=async()=>{if(await pinOK(a.value.trim())){done();return}tries++;err.textContent='비밀번호가 달라요.'+(tries>=3?' 잊었다면 아래를 눌러 주세요.':'');a.value='';a.focus()};
+  a.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();go()}});
+  const forgot=el('button',{class:'link',type:'button',onclick:()=>{forgot.replaceWith(el('div',{class:'warn',style:'text-align:left;flex-direction:column;align-items:stretch'},el('span',{},'비밀번호는 찾을 수 없어요. 이 폰의 기록과 사진을 모두 지우고 새로 시작할 수 있어요. 백업 파일이 있으면 그다음에 불러오면 돼요.'),wipeBtn))}},'비밀번호를 잊었어요');
+  const wipeBtn=el('button',{class:'btn bad',type:'button',onclick:async()=>{if(!wipeBtn.dataset.sure){wipeBtn.dataset.sure='1';wipeBtn.textContent='한 번 더 누르면 모두 지워져요';return}try{const d=await openDB();await P(d.transaction('photos','readwrite').objectStore('photos').clear());await kvSet('state',BLANK())}catch(e){}try{localStorage.removeItem(LOCKK)}catch(e){}location.reload()}},'모두 지우고 새로 시작');
+  box.append(el('div',{class:'ic'},'🔒'),el('h2',{},S.name),el('p',{},'비밀번호를 넣어 주세요'),a,err,el('button',{class:'btn wide',type:'button',onclick:go},'열기'),forgot);
+  document.body.append(bg);setTimeout(()=>a.focus(),60);
+}
+async function lockChange(msg){const cur=await askText('지금 비밀번호','지금 쓰는 비밀번호',{pw:1,ok:'확인'});if(cur==null)return;if(!await pinOK(cur)){msg.textContent='지금 비밀번호가 달라요.';return}const L=lockGet();lockSet({on:false,old:L});lockScreen('setup');const t=setInterval(()=>{if(lockOpen)return;clearInterval(t);const n=lockGet();if(!n||!n.on){lockSet(L);msg.textContent='바꾸지 않았어요.'}else msg.textContent='비밀번호를 바꿨어요.';},300)}
+async function lockOff(msg){const cur=await askText('잠금 끄기','지금 비밀번호',{pw:1,ok:'잠금 끄기'});if(cur==null)return;if(!await pinOK(cur)){msg.textContent='비밀번호가 달라요.';return}lockSet({on:false});toast('잠금을 껐어요');render()}
+document.addEventListener('visibilitychange',()=>{if(PREVIEW)return;if(document.hidden){hiddenAt=Date.now();return}const L=lockGet();if(L&&L.on&&hiddenAt&&Date.now()-hiddenAt>180000){sheetStack.slice().forEach(c=>c());lockScreen('unlock')}});
+
+// ---------- AI로 한 번에 넣기 (Claude API, 각자 키) ----------
+const AIK='homebox-ai-key';
+function aiKey(v){try{if(v===undefined)return localStorage.getItem(AIK)||'';if(v)localStorage.setItem(AIK,v);else localStorage.removeItem(AIK)}catch(e){}return ''}
+const AI_SCHEMA={type:'object',additionalProperties:false,required:['items'],properties:{items:{type:'array',items:{type:'object',additionalProperties:false,required:['name','cat','size','season','box'],properties:{
+  name:{type:'string'},cat:{type:'string',enum:CATS},size:{type:'string'},season:{type:'array',items:{type:'string',enum:SEASONS}},box:{type:'array',items:{type:'integer'}}}}}}};
+const AI_PROMPT='이 사진은 집 정리용 수납함(상자·서랍·선반) 안이나, 바닥에 펼쳐 놓은 물건이에요. 보이는 물건을 하나씩 찾아 목록으로 만들어 주세요.\n'+
+  '- name: 한국어로 짧고 구체적으로(색·종류·특징, 예: "남색 롱패딩", "레고 듀플로 블록", "크리스마스 트리 전구"). 같은 물건이 여러 개면 "흰 양말 5켤레"처럼 하나로 묶어요.\n'+
+  '- cat: 주어진 목록 중 가장 알맞은 것 하나.\n- size: 옷·신발 라벨에 사이즈가 보일 때만 적고, 아니면 빈 문자열.\n- season: 계절 옷이나 계절용품일 때만(예: 패딩은 겨울), 아니면 빈 배열.\n'+
+  '- box: 그 물건이 보이는 영역 [왼쪽, 위, 오른쪽, 아래]. 사진 전체를 가로·세로 0~1000으로 본 정수.\n'+
+  '물건이 아닌 것(상자 자체, 바닥, 손)은 빼고, 무엇인지 확실하지 않은 것도 빼요. 최대 30개.';
+async function aiStart(boxId){
+  if(PREVIEW){toast('미리보기에서는 AI가 안 돼요. 실제 앱에서 할 수 있어요');return}
+  const key=aiKey();
+  if(!key){sheet('AI로 한 번에 넣기',(sh,close)=>{sh.append(el('p',{style:'margin:0 0 12px'},'이 기능은 Anthropic API 키가 있어야 써요. 설정 → "AI로 한 번에 넣기"에 키를 넣어 주세요. 키가 없으면 "사진 여러 장으로 한 번에 넣기"로 직접 넣을 수 있어요.'),el('button',{class:'btn wide',type:'button',onclick:()=>{close();tabGo('settings')}},'설정으로 가기'))});return}
+  const f=(await pickFile($('fileOne')))[0];if(!f)return;
+  let img;try{img=await loadImg(f)}catch(e){toast(String(e.message||e));return}
+  const small=document.createElement('canvas');{const s=Math.min(1,1280/Math.max(img.naturalWidth,img.naturalHeight));small.width=Math.round(img.naturalWidth*s);small.height=Math.round(img.naturalHeight*s);small.getContext('2d').drawImage(img,0,0,small.width,small.height)}
+  const data=small.toDataURL('image/jpeg',.85).split(',')[1];
+  const status=el('p',{style:'margin:6px 0'},el('span',{class:'spin','aria-hidden':'true'}),'AI가 사진 속 물건을 찾고 있어요… (10~40초)');
+  const closeWait=sheet('AI가 찾는 중',sh=>{const pv=el('img',{src:small.toDataURL('image/jpeg',.7),alt:'',style:'width:100%;border-radius:12px;max-height:40vh;object-fit:contain;background:#111'});sh.append(pv,status)});
+  let items;
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'content-type':'application/json','x-api-key':key,'anthropic-version':'2026-10-21','anthropic-beta':'server-side-fallback-2026-07-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({model:'claude-opus-5-5',max_tokens:16000,fallbacks:'default',output_config:{effort:'low',format:{type:'json_schema',schema:AI_SCHEMA}},
+        messages:[{role:'user',content:[{type:'image',source:{type:'base64',media_type:'image/jpeg',data}},{type:'text',text:AI_PROMPT}]}]})});
+    const j=await res.json().catch(()=>null);
+    if(!res.ok){const t=j&&j.error&&j.error.type;throw new Error(res.status===401?'API 키가 맞지 않아요. 설정에서 키를 확인해 주세요.':res.status===429?'잠깐 요청이 많아요. 1분 뒤 다시 해 주세요.':t==='invalid_request_error'&&/credit/i.test(j.error.message||'')?'API 잔액이 부족해요. console.anthropic.com에서 충전해 주세요.':'AI 요청이 실패했어요 ('+res.status+(j&&j.error&&j.error.message?': '+j.error.message:'')+')')}
+    if(j.stop_reason==='refusal')throw new Error('AI가 이 사진은 분석하지 않았어요. 다른 사진으로 해 주세요.');
+    const tb=(j.content||[]).find(c=>c.type==='text');if(!tb)throw new Error('AI 답을 읽지 못했어요. 다시 해 주세요.');
+    items=(JSON.parse(tb.text).items||[]).slice(0,30);
+  }catch(e){status.textContent=String(e&&e.message||e).replace(/^TypeError: Failed to fetch$/,'인터넷 연결을 확인해 주세요.');return}
+  closeWait();
+  if(!items.length){sheet('찾은 물건이 없어요',sh=>sh.append(el('p',{},'사진에서 물건을 찾지 못했어요. 물건이 잘 보이게 밝은 곳에서 다시 찍어 주세요.')));return}
+  aiReview(img,items,boxId);
+}
+function aiCrop(img,bx){const W=img.naturalWidth,H=img.naturalHeight;let [x0,y0,x1,y1]=(bx&&bx.length===4?bx:[0,0,1000,1000]).map(Number);if(!(x1>x0&&y1>y0)){x0=0;y0=0;x1=1000;y1=1000}
+  const px=(x1-x0)*.08,py=(y1-y0)*.08;x0=Math.max(0,x0-px);y0=Math.max(0,y0-py);x1=Math.min(1000,x1+px);y1=Math.min(1000,y1+py);
+  const sx=x0/1000*W,sy=y0/1000*H,sw=Math.max(8,(x1-x0)/1000*W),sh=Math.max(8,(y1-y0)/1000*H);const s=Math.min(1,1280/Math.max(sw,sh));
+  const c=document.createElement('canvas');c.width=Math.round(sw*s);c.height=Math.round(sh*s);c.getContext('2d').drawImage(img,sx,sy,sw,sh,0,0,c.width,c.height);return c}
+function aiReview(img,items,boxId){
+  const rows=items.map(it=>({on:true,name:String(it.name||'').slice(0,40),cat:CATS.includes(it.cat)?it.cat:'기타',size:String(it.size||'').slice(0,12),season:(it.season||[]).filter(x=>SEASONS.includes(x)),crop:aiCrop(img,it.box)}));
+  const d={boxId:boxId||'',owner:'',asBoxPhoto:true};
+  sheet('AI가 찾은 물건 '+rows.length+'개',(sh,close)=>{
+    sh.append(el('p',{class:'msg',style:'margin:0 0 6px'},'맞는 것만 체크하고, 이름·종류를 고쳐서 넣어요. 사진은 물건마다 잘라서 저장돼요.'));
+    const list=el('div');rows.forEach(r=>{const cb=el('input',{type:'checkbox',checked:true,'aria-label':'넣기',onchange:()=>{r.on=cb.checked;cnt()}});const th=r.crop.cloneNode();th.getContext('2d').drawImage(r.crop,0,0);
+      const nm=el('input',{type:'text',value:r.name,maxlength:'40','aria-label':'이름',oninput:()=>r.name=nm.value});const sel=el('select',{'aria-label':'종류',onchange:()=>r.cat=sel.value});CATS.forEach(c=>sel.append(el('option',{value:c,selected:c===r.cat?true:null},c)));
+      list.append(el('label',{class:'airow'},cb,th,el('div',{class:'fs'},nm,sel)))});
+    sh.append(list);
+    if(S.people.length)sh.append(el('div',{class:'f',style:'margin-top:12px'},el('div',{class:'lb'},'누구 것 (모두에게)'),chipPick([...S.people,'공용'],'',false,v=>d.owner=v)));
+    sh.append(el('div',{class:'f',style:'margin-top:12px'},el('div',{class:'lb'},'어디에 두나요'),boxSelect(d.boxId,v=>{d.boxId=v;bp.hidden=!v})));
+    const bpc=el('input',{type:'checkbox',checked:true,onchange:()=>d.asBoxPhoto=bpc.checked});const bp=el('label',{class:'airow',style:'border:0'},bpc,el('span',{},'이 사진을 수납함의 "상자 속 사진"으로도 저장'));bp.hidden=!d.boxId;sh.append(bp);
+    const msg=el('div',{class:'msg'});
+    const go=el('button',{class:'btn wide',type:'button',style:'margin-top:10px',onclick:async()=>{const pick=rows.filter(r=>r.on);if(!pick.length)return;go.disabled=true;let n=0;
+      for(const r of pick){msg.textContent='저장하는 중… '+(++n)+'/'+pick.length;const pid=await savePhotoFrom(r.crop);S.items.push({id:'i'+uid(),status:'keep',created:Date.now(),updated:Date.now(),name:r.name.trim(),cat:r.cat,owner:d.owner,size:r.size,brand:'',season:r.season,boxId:d.boxId,memo:'',photoId:pid})}
+      const b=boxOf(d.boxId);if(b&&d.asBoxPhoto){const old=b.photoId;b.photoId=await savePhotoFrom(img);b.updated=Date.now();if(old)dropPhoto(old)}
+      changed();close();render();toast(pick.length+'개를 넣었어요')}});
+    const cnt=()=>{const k=rows.filter(r=>r.on).length;go.textContent=k?k+'개 넣기':'넣을 것을 골라 주세요';go.disabled=!k};cnt();
+    sh.append(go,msg);
+  });
 }
 
 // ---------- 예시 ----------
@@ -613,6 +755,7 @@ let toastT=null;function toast(t){document.querySelectorAll('.toast').forEach(x=
 (async()=>{
   try{const st=await kvGet('state');if(st){S=Object.assign(BLANK(),st);let ch=false;if(S.name==='우리집 옷장'){S.name='우리집 보관함';ch=true}S.items.forEach(i=>{if(OLD_CLOTHES.includes(i.cat)){if(!i.name)i.name=i.cat;i.cat='옷';ch=true}else if(i.cat==='신발'||i.cat==='가방'){i.cat='신발·가방';ch=true}});if(ch)changed()}}catch(e){$('main').append(el('div',{class:'warn'},'저장소를 열 수 없어요. 시크릿 모드라면 일반 창으로 열어 주세요.'))}
   document.title=S.name;render();fromHash();
+  if(!PREVIEW){const L=lockGet();if(!L)lockScreen('setup');else if(L.on)lockScreen('unlock')}
 })();
 window.__closet={get S(){return S},render};
 })();
