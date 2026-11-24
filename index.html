@@ -1,0 +1,619 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>우리집 옷장</title>
+<meta name="description" content="상자에 QR 라벨을 붙이고, 어디에 무슨 옷이 있는지 폰으로 찾는 옷장 정리 앱. 기록은 내 폰에만 저장돼요.">
+<meta name="theme-color" content="#f6f5f2">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<style>
+:root{--bg:#f6f5f2;--card:#fff;--fg:#25242a;--muted:#6c6973;--line:#e7e4de;--field:#f0eee9;--accent:#2d6e68;--accent-2:#e4f0ee;--bad:#c63c3c;--good:#2f8a4e;--r:14px;--shadow:0 1px 2px rgba(0,0,0,.05),0 2px 10px rgba(0,0,0,.04)}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 "Pretendard","Noto Sans KR",system-ui,-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;padding-bottom:calc(76px + env(safe-area-inset-bottom))}
+@media (min-width:700px){html{font-size:17px}body{font-size:17px}}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+.wrap{max-width:620px;margin:0 auto;padding:0 14px}
+main.wrap{padding-bottom:70px}
+header.top{position:sticky;top:0;z-index:20;background:var(--bg);border-bottom:1px solid var(--line)}
+header.top .wrap{display:flex;align-items:center;gap:8px;height:54px}
+header.top h1{font-size:19px;margin:0;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.iconbtn{border:0;background:transparent;font-size:20px;width:40px;height:40px;border-radius:10px;display:grid;place-items:center}
+.iconbtn:active{background:var(--field)}
+.back{border:0;background:transparent;color:var(--accent);font-size:16px;padding:8px 4px}
+.search{position:relative;margin:12px 0 4px}
+.search input{width:100%;border:1px solid var(--line);background:var(--card);border-radius:12px;padding:12px 14px 12px 40px;font-size:16px}
+.search input:focus{outline:2px solid var(--accent);border-color:transparent}
+.search::before{content:"⌕";position:absolute;left:14px;top:50%;transform:translateY(-52%);font-size:20px;color:var(--muted)}
+h2.sec{font-size:15px;color:var(--muted);margin:18px 2px 8px;display:flex;align-items:center;gap:8px}
+h2.sec .cnt{font-weight:400}
+h2.sec .more{margin-left:auto;border:0;background:transparent;color:var(--accent);font-size:14px}
+.card{background:var(--card);border-radius:var(--r);box-shadow:var(--shadow)}
+.boxrow{display:flex;align-items:stretch;gap:0;background:var(--card);border-radius:12px;box-shadow:var(--shadow);margin-bottom:8px;overflow:hidden;border:0;width:100%;text-align:left;padding:0}
+.boxrow .bar{width:58px;flex:none;display:grid;place-items:center;color:#fff;font-weight:800;font-size:18px;letter-spacing:-.5px}
+.boxrow .tx{padding:10px 12px;min-width:0;flex:1}
+.boxrow b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.boxrow .sum{font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.boxrow .n{padding:10px 14px 10px 0;align-self:center;color:var(--muted);font-size:14px;white-space:nowrap}
+.empty{color:var(--muted);text-align:center;padding:26px 10px;font-size:14px}
+.btn{border:0;border-radius:12px;padding:12px 14px;background:var(--accent);color:#fff;font-weight:700;font-size:15px}
+.btn.ghost{background:var(--card);color:var(--accent);border:1px solid var(--line);font-weight:600}
+.btn.soft{background:var(--accent-2);color:var(--accent)}
+.btn.bad{background:#fbeaea;color:var(--bad)}
+.btn.wide{width:100%}
+.btns{display:flex;gap:8px;flex-wrap:wrap}
+.btns>*{flex:1}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+@media (min-width:520px){.grid{grid-template-columns:repeat(4,1fr)}}
+.it{border:0;padding:0;background:var(--card);border-radius:12px;box-shadow:var(--shadow);overflow:hidden;text-align:left;display:flex;flex-direction:column}
+.ph{aspect-ratio:1;background:var(--field);display:grid;place-items:center;color:#b3afa7;font-size:30px;overflow:hidden;position:relative}
+.ph img{width:100%;height:100%;object-fit:cover;display:block}
+.it .cap{padding:6px 8px 8px;font-size:13px;line-height:1.35}
+.it .cap b{display:block;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.it .cap span{color:var(--muted);display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dot{display:inline-block;width:10px;height:10px;border-radius:3px;vertical-align:-1px;margin-right:4px}
+.list .row{display:flex;gap:10px;align-items:center;background:var(--card);border-radius:12px;box-shadow:var(--shadow);padding:8px;margin-bottom:8px;border:0;width:100%;text-align:left}
+.list .row .ph{width:56px;flex:none;border-radius:9px;font-size:20px}
+.list .row .tx{min-width:0;flex:1}
+.list .row b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.list .row span{display:block;font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.loc{display:inline-flex!important;align-items:center;gap:4px;background:var(--field);color:var(--fg)!important;border-radius:999px;padding:1px 9px;font-size:12.5px!important;margin-top:3px;max-width:100%}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{border:1px solid var(--line);background:var(--card);border-radius:999px;padding:6px 12px;font-size:14px;white-space:nowrap}
+.chip[aria-pressed=true]{background:var(--accent);color:#fff;border-color:var(--accent)}
+.chips.scroll{flex-wrap:nowrap;overflow-x:auto;padding-bottom:4px;margin:0 -14px;padding-left:14px;padding-right:14px;scrollbar-width:none}
+.chips.scroll::-webkit-scrollbar{display:none}
+.filters{display:flex;flex-direction:column;gap:6px;margin:8px 0 10px}
+nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(255,255,255,.96);backdrop-filter:blur(8px);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom)}
+nav.tabs .wrap{display:flex;height:62px;padding:0 4px}
+nav.tabs button{flex:1;border:0;background:transparent;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;font-size:11.5px;color:var(--muted)}
+nav.tabs button .i{font-size:21px;line-height:1}
+nav.tabs button[aria-current=page]{color:var(--accent);font-weight:700}
+nav.tabs button.add .i{width:46px;height:46px;border-radius:50%;background:var(--accent);color:#fff;display:grid;place-items:center;font-size:28px;margin-top:-18px;box-shadow:0 4px 12px rgba(45,110,104,.35)}
+.fab{position:fixed;right:max(16px,calc(50% - 294px));bottom:calc(82px + env(safe-area-inset-bottom));z-index:25;border:0;border-radius:999px;background:#25242a;color:#fff;font-weight:700;padding:12px 18px;box-shadow:0 6px 18px rgba(0,0,0,.25);display:flex;gap:6px;align-items:center}
+.sheet-bg{position:fixed;inset:0;background:rgba(20,20,24,.45);z-index:50;display:flex;align-items:flex-end;justify-content:center}
+.sheet{background:var(--bg);width:100%;max-width:620px;max-height:92vh;overflow:auto;border-radius:18px 18px 0 0;padding:6px 16px calc(18px + env(safe-area-inset-bottom))}
+.sheet .grab{width:40px;height:5px;border-radius:3px;background:#d4d0c8;margin:4px auto 8px}
+.sheet h3{margin:4px 0 12px;font-size:18px;display:flex;align-items:center}
+.sheet h3 .x{margin-left:auto}
+.f{display:flex;flex-direction:column;gap:5px;margin-bottom:12px}
+.f>label,.f>.lb{font-size:13px;color:var(--muted)}
+.f input[type=text],.f input[type=date],.f input[type=number],.f select,.f textarea,.inp{width:100%;border:1px solid transparent;background:var(--field);border-radius:10px;padding:11px 12px;font-size:16px}
+.f input:focus,.f select:focus,.f textarea:focus,.inp:focus{outline:none;border-color:var(--accent);background:#fff}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.photo-pick{display:flex;gap:10px;align-items:center;margin-bottom:12px}
+.photo-pick .ph{width:96px;border-radius:12px;flex:none}
+.photo-pick .btns{flex-direction:column;flex:1}
+.colors{display:flex;gap:8px;flex-wrap:wrap}
+.colors button{width:38px;height:38px;border-radius:10px;border:3px solid transparent}
+.colors button[aria-pressed=true]{border-color:#25242a;box-shadow:inset 0 0 0 2px #fff}
+.boxhead{border-radius:var(--r);color:#fff;padding:16px;margin-top:12px;display:flex;gap:14px;align-items:center}
+.boxhead .code{font-size:34px;font-weight:800;line-height:1;letter-spacing:-1px}
+.boxhead .nm{font-size:19px;font-weight:700}
+.boxhead .rm{opacity:.9;font-size:14px}
+.big-ph{border-radius:var(--r);overflow:hidden;background:var(--field);aspect-ratio:4/3;display:grid;place-items:center;color:#b3afa7;font-size:48px}
+.big-ph img{width:100%;height:100%;object-fit:contain;background:#111}
+.kv{display:grid;grid-template-columns:76px 1fr;gap:6px 10px;margin:12px 0;font-size:15px}
+.kv dt{color:var(--muted)}
+.kv dd{margin:0}
+.note{background:var(--accent-2);color:#1f514d;border-radius:12px;padding:10px 12px;font-size:14px;margin:10px 0}
+.warn{background:#fff4e0;color:#7a4b00;border-radius:12px;padding:10px 12px;font-size:14px;margin:10px 0;display:flex;gap:8px;align-items:center}
+.warn button{margin-left:auto;white-space:nowrap}
+.msg{font-size:13.5px;color:var(--muted);min-height:1em;margin-top:6px}
+.setcard{background:var(--card);border-radius:var(--r);box-shadow:var(--shadow);padding:14px;margin:12px 0}
+.setcard h4{margin:0 0 4px;font-size:16px}
+.setcard p{margin:0 0 10px;color:var(--muted);font-size:13.5px}
+.tagrow{display:flex;gap:6px;align-items:center;margin-bottom:6px}
+.tagrow input{flex:1}
+.tagrow button{border:0;background:var(--field);border-radius:8px;padding:9px 10px;font-size:13px}
+.ver{color:var(--muted);text-align:center;font-size:13px;margin:18px 0}
+.stat{display:flex;gap:8px;margin:10px 0}
+.stat div{flex:1;background:var(--card);border-radius:12px;box-shadow:var(--shadow);padding:10px;text-align:center}
+.stat b{display:block;font-size:20px}
+.stat span{font-size:12.5px;color:var(--muted)}
+.scan-bg{position:fixed;inset:0;background:#000;z-index:60;display:flex;flex-direction:column}
+.scan-bg video{flex:1;width:100%;object-fit:cover;min-height:0}
+.scan-bg .frame{position:absolute;left:50%;top:42%;width:64vmin;height:64vmin;transform:translate(-50%,-50%);border:3px solid #fff;border-radius:18px;box-shadow:0 0 0 100vmax rgba(0,0,0,.35)}
+.scan-bg .bar{padding:14px 16px calc(14px + env(safe-area-inset-bottom));color:#fff;display:flex;align-items:center;gap:10px;background:#000;z-index:1}
+.scan-bg .bar p{flex:1;margin:0;font-size:14px}
+.toast{position:fixed;left:50%;bottom:calc(140px + env(safe-area-inset-bottom));transform:translateX(-50%);background:#25242a;color:#fff;padding:10px 16px;border-radius:999px;font-size:14px;z-index:80;max-width:90vw;text-align:center}
+.sel-list .opt{display:flex;align-items:center;gap:10px;padding:10px 6px;border-bottom:1px solid var(--line);background:transparent;border-left:0;border-right:0;border-top:0;width:100%;text-align:left}
+.sel-list .room{font-size:13px;color:var(--muted);margin:12px 0 2px}
+.lblpick .opt{display:flex;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)}
+.lblpick input{width:20px;height:20px}
+#printArea{display:none}
+@media print{
+  @page{size:A4;margin:10mm}
+  body{background:#fff;padding:0}
+  body>*:not(#printArea){display:none!important}
+  #printArea{display:block!important}
+}
+.sheetp{display:grid;gap:4mm;grid-template-columns:repeat(2,1fr)}
+.sheetp.s3{grid-template-columns:repeat(3,1fr)}
+.lab{border:1px solid #999;border-radius:3mm;overflow:hidden;break-inside:avoid;display:flex;flex-direction:column;font-family:inherit}
+.lab .lt{color:#fff;display:flex;align-items:center;gap:3mm;padding:2mm 3mm;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.lab .lt b{font-size:22pt;line-height:1;letter-spacing:-.5pt}
+.lab .lt span{font-size:9pt;opacity:.95}
+.lab .lb{display:flex;gap:3mm;padding:2.5mm 3mm;align-items:center}
+.lab .lb svg{width:30mm;height:30mm;flex:none}
+.lab .lb .t{font-size:12pt;font-weight:700;line-height:1.25;word-break:keep-all}
+.lab .lb .t small{display:block;font-size:8.5pt;font-weight:400;color:#555;margin-top:1.5mm}
+.sheetp.s3 .lab .lt b{font-size:16pt}
+.sheetp.s3 .lab .lb svg{width:22mm;height:22mm}
+.sheetp.s3 .lab .lb .t{font-size:9.5pt}
+.preview{background:#fff;border-radius:12px;padding:10px;box-shadow:var(--shadow);margin:10px 0;zoom:.62}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap" id="topbar"></div></header>
+<main class="wrap" id="main"></main>
+<button class="fab" id="fab" type="button" hidden><span aria-hidden="true">⌗</span> QR 찍기</button>
+<nav class="tabs" aria-label="화면"><div class="wrap">
+  <button type="button" data-tab="home"><span class="i" aria-hidden="true">⌂</span>수납함</button>
+  <button type="button" data-tab="items"><span class="i" aria-hidden="true">▦</span>옷 전체</button>
+  <button type="button" data-tab="add" class="add" aria-label="옷 추가"><span class="i" aria-hidden="true">+</span>추가</button>
+  <button type="button" data-tab="gone"><span class="i" aria-hidden="true">♺</span>정리함</button>
+  <button type="button" data-tab="settings"><span class="i" aria-hidden="true">⚙</span>설정</button>
+</div></nav>
+<input type="file" id="fileOne" accept="image/*" hidden>
+<input type="file" id="fileCam" accept="image/*" capture="environment" hidden>
+<input type="file" id="fileMany" accept="image/*" multiple hidden>
+<input type="file" id="fileBackup" accept="application/json,.json" hidden>
+<div id="printArea"></div>
+<script src="qrcode.js"></script>
+<script>
+(function(){
+'use strict';
+const VERSION='2026.11.24-2145';
+const PREVIEW='0'==='1'; // Claude 미리보기: 카메라·인쇄·파일 내려받기가 막혀 있음
+const $=id=>document.getElementById(id);
+const el=(tag,attrs,...kids)=>{const e=document.createElement(tag);if(attrs)for(const k in attrs){const v=attrs[k];if(v==null||v===false)continue;if(k==='class')e.className=v;else if(k==='text')e.textContent=v;else if(k==='html')e.innerHTML=v;else if(k.startsWith('on'))e.addEventListener(k.slice(2),v);else if(k==='style')e.style.cssText=v;else e.setAttribute(k,v===true?'':v)}kids.flat().forEach(c=>{if(c==null||c===false)return;e.append(c.nodeType?c:String(c))});return e};
+const uid=()=>Date.now().toString(36).slice(-5)+Math.random().toString(36).slice(2,7);
+const pad=n=>String(n).padStart(2,'0');
+const today=()=>{const d=new Date();return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())};
+const won=n=>(Number(n)||0).toLocaleString('ko-KR')+'원';
+
+const COLORS=[['red','빨강','#df4a4f'],['orange','주황','#e9822a'],['yellow','노랑','#d9a514'],['green','초록','#2f9a57'],['blue','파랑','#3478d4'],['purple','보라','#7f56d9'],['pink','분홍','#d9558f'],['gray','회색','#6f7680']];
+const colorOf=k=>(COLORS.find(c=>c[0]===k)||COLORS[7]);
+const CATS=['상의','하의','원피스·세트','아우터','니트·가디건','속옷·잠옷','양말·스타킹','신발','가방','모자·소품','이불·패브릭','기타'];
+const SEASONS=['봄','여름','가을','겨울'];
+const EXITS=[['give','기증'],['sell','판매'],['hand','물려줌'],['trash','버림'],['etc','기타']];
+const exitName=k=>(EXITS.find(e=>e[0]===k)||EXITS[4])[1];
+
+// ---------- 저장소 (IndexedDB: 이 폰 안에만) ----------
+let DBP=null;
+function openDB(){if(DBP)return DBP;DBP=new Promise((res,rej)=>{const r=indexedDB.open('closet',1);r.onupgradeneeded=()=>{const d=r.result;if(!d.objectStoreNames.contains('kv'))d.createObjectStore('kv');if(!d.objectStoreNames.contains('photos'))d.createObjectStore('photos')};r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)});return DBP}
+const P=r=>new Promise((res,rej)=>{r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)});
+async function store(name,mode){const d=await openDB();return d.transaction(name,mode||'readonly').objectStore(name)}
+const kvGet=async k=>P((await store('kv')).get(k));
+const kvSet=async(k,v)=>P((await store('kv','readwrite')).put(v,k));
+const phGet=async id=>P((await store('photos')).get(id));
+const phSet=async(id,v)=>P((await store('photos','readwrite')).put(v,id));
+const phDel=async id=>P((await store('photos','readwrite')).delete(id));
+
+const BLANK=()=>({v:1,name:'우리집 옷장',rooms:[],boxes:[],items:[],people:[],seq:0,lastBackup:0});
+let S=BLANK();
+let saveT=null;
+function changed(){clearTimeout(saveT);saveT=setTimeout(save,300)}
+async function save(){try{await kvSet('state',JSON.parse(JSON.stringify(S)))}catch(e){toast('저장하지 못했어요: '+(e&&e.message||e))}}
+window.addEventListener('pagehide',()=>{if(saveT){clearTimeout(saveT);save()}});
+document.addEventListener('visibilitychange',()=>{if(document.hidden&&saveT){clearTimeout(saveT);save()}});
+
+// ---------- 사진 ----------
+const urlCache=new Map();
+async function thumbURL(id,full){const key=id+(full?':f':'');if(urlCache.has(key))return urlCache.get(key);const r=await phGet(id).catch(()=>null);if(!r)return null;const b=full?(r.full||r.thumb):(r.thumb||r.full);if(!b)return null;const u=URL.createObjectURL(b);urlCache.set(key,u);return u}
+function fillPhotos(root){root.querySelectorAll('img[data-ph]').forEach(async img=>{const u=await thumbURL(img.dataset.ph,img.dataset.full==='1');if(u){img.src=u;img.hidden=false}})}
+function phEl(photoId,full,fallback){const box=el('div',{class:'ph'});if(photoId){const i=el('img',{alt:'','data-ph':photoId,'data-full':full?'1':null,hidden:true});box.append(i)}else box.append(fallback||'👕');return box}
+function loadImg(file){return new Promise((res,rej)=>{const u=URL.createObjectURL(file);const i=new Image();i.onload=()=>{res(i);setTimeout(()=>URL.revokeObjectURL(u),1000)};i.onerror=()=>{URL.revokeObjectURL(u);rej(new Error('사진을 열 수 없어요'))};i.src=u})}
+function shrink(img,max,q){const s=Math.min(1,max/Math.max(img.naturalWidth,img.naturalHeight));const c=document.createElement('canvas');c.width=Math.max(1,Math.round(img.naturalWidth*s));c.height=Math.max(1,Math.round(img.naturalHeight*s));c.getContext('2d').drawImage(img,0,0,c.width,c.height);return new Promise(r=>c.toBlob(b=>r(b),'image/jpeg',q))}
+async function savePhoto(file){const img=await loadImg(file);const full=await shrink(img,1280,.82),thumb=await shrink(img,320,.72);const id='p'+uid();await phSet(id,{full,thumb});askPersist();return id}
+async function dropPhoto(id){if(!id)return;['',':f'].forEach(s=>{const u=urlCache.get(id+s);if(u){URL.revokeObjectURL(u);urlCache.delete(id+s)}});await phDel(id).catch(()=>{})}
+let persistAsked=false;
+function askPersist(){if(persistAsked)return;persistAsked=true;try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist()}catch(e){}}
+function pickFile(input){return new Promise(res=>{input.value='';const on=()=>{input.removeEventListener('change',on);res(Array.from(input.files||[]))};input.addEventListener('change',on);input.click()})}
+
+// ---------- 찾기 ----------
+const boxOf=id=>S.boxes.find(b=>b.id===id);
+const roomOf=id=>S.rooms.find(r=>r.id===id);
+const itemOf=id=>S.items.find(i=>i.id===id);
+const keep=()=>S.items.filter(i=>i.status!=='gone');
+const inBox=bid=>keep().filter(i=>i.boxId===bid);
+const itemName=i=>i.name||(i.cat||'옷');
+const boxLabel=b=>'#'+pad(b.code)+' '+(b.name||'이름 없는 수납함');
+function locText(i){const b=boxOf(i.boxId);if(!b)return '위치 미정';const r=roomOf(b.roomId);return boxLabel(b)+(r?' · '+r.name:'')}
+function locChip(i){const b=boxOf(i.boxId);const s=el('span',{class:'loc'});if(b)s.append(el('i',{class:'dot',style:'background:'+colorOf(b.color)[2]}));s.append(locText(i));return s}
+function itemMeta(i){return [i.cat,i.size,i.owner,(i.season||[]).length===4?'사계절':(i.season||[]).join('·'),i.brand].filter(Boolean).join(' · ')}
+function norm(s){return String(s||'').toLowerCase().replace(/\s+/g,'')}
+function matchItem(i,q){const toks=q.toLowerCase().split(/\s+/).filter(Boolean);if(!toks.length)return true;const b=boxOf(i.boxId);const r=b&&roomOf(b.roomId);const hay=norm([i.name,i.cat,i.size,i.owner,i.brand,i.memo,(i.season||[]).join(' '),b&&b.name,b&&('#'+pad(b.code)),b&&colorOf(b.color)[1],r&&r.name].join(' '));return toks.every(t=>hay.includes(norm(t)))}
+function boxSummary(b){const L=inBox(b.id);if(!L.length)return b.note||'비어 있어요';const c={};L.forEach(i=>{const k=i.cat||'기타';c[k]=(c[k]||0)+1});return Object.entries(c).sort((a,b)=>b[1]-a[1]).slice(0,4).map(([k,n])=>k+' '+n).join(' · ')}
+
+// ---------- 화면 이동 ----------
+let view={name:'home'};const hist=[];
+function go(v,push){if(push!==false)hist.push(view);view=v;render();scrollTo(0,0)}
+function back(){view=hist.pop()||{name:'home'};render()}
+function tabGo(name){hist.length=0;go({name},false)}
+function topbar(title,canBack,right){const t=$('topbar');t.textContent='';if(canBack)t.append(el('button',{class:'back',type:'button',onclick:back},'‹ 뒤로'));t.append(el('h1',{},title));if(right)t.append(right)}
+function render(){
+  document.querySelectorAll('nav.tabs [data-tab]').forEach(b=>b.setAttribute('aria-current',b.dataset.tab===({box:'home',labels:'settings'}[view.name]||view.name)?'page':'false'));
+  $('fab').hidden=PREVIEW||!(view.name==='home'||view.name==='box');
+  const m=$('main');m.textContent='';
+  ({home:vHome,items:vItems,box:vBox,gone:vGone,settings:vSettings,labels:vLabels}[view.name]||vHome)(m);
+  fillPhotos(m);
+}
+document.querySelectorAll('nav.tabs [data-tab]').forEach(b=>b.addEventListener('click',()=>{const t=b.dataset.tab;if(t==='add'){addMenu();return}tabGo(t)}));
+
+// ---------- 홈: 방 → 수납함 ----------
+let homeQ='';
+function vHome(m){
+  topbar(S.name,false,el('button',{class:'iconbtn',type:'button','aria-label':'설정',onclick:()=>tabGo('settings')},'⚙'));
+  if(!S.boxes.length&&!S.items.length){m.append(welcome());return}
+  const res=el('div');
+  const inp=el('input',{type:'search',placeholder:'무엇을 찾나요? 예: 패딩, 겨울, 110',value:homeQ,'aria-label':'옷 찾기',oninput:()=>{homeQ=inp.value;draw()}});
+  m.append(el('div',{class:'search'},inp),res);
+  const bk=backupNag();if(bk)m.insertBefore(bk,res);
+  function draw(){
+    res.textContent='';
+    if(homeQ.trim()){
+      const its=keep().filter(i=>matchItem(i,homeQ));
+      const bxs=S.boxes.filter(b=>norm([b.name,'#'+pad(b.code),b.note,colorOf(b.color)[1],(roomOf(b.roomId)||{}).name].join(' ')).includes(norm(homeQ)));
+      if(bxs.length){res.append(el('h2',{class:'sec'},'수납함 ',el('span',{class:'cnt'},bxs.length+'개')));bxs.forEach(b=>res.append(boxRow(b)))}
+      res.append(el('h2',{class:'sec'},'옷 ',el('span',{class:'cnt'},its.length+'벌')));
+      if(!its.length)res.append(el('div',{class:'empty'},'찾는 옷이 없어요. 다른 말로 찾아보세요.'));
+      const L=el('div',{class:'list'});its.slice(0,200).forEach(i=>L.append(itemRow(i)));res.append(L);fillPhotos(res);return;
+    }
+    const groups=S.rooms.map(r=>[r,S.boxes.filter(b=>b.roomId===r.id)]);
+    const loose=S.boxes.filter(b=>!roomOf(b.roomId));
+    if(loose.length)groups.push([null,loose]);
+    groups.forEach(([r,bs])=>{
+      res.append(el('h2',{class:'sec'},r?r.name:'방 미정',el('span',{class:'cnt'},bs.length+'개'),el('button',{class:'more',type:'button',onclick:()=>boxSheet(null,r&&r.id)},'+ 수납함')));
+      if(!bs.length)res.append(el('div',{class:'empty',style:'padding:10px'},'아직 수납함이 없어요.'));
+      bs.slice().sort((a,b)=>a.code-b.code).forEach(b=>res.append(boxRow(b)));
+    });
+    const none=keep().filter(i=>!boxOf(i.boxId));
+    if(none.length){res.append(el('h2',{class:'sec'},'위치 미정',el('span',{class:'cnt'},none.length+'벌')));res.append(el('button',{class:'boxrow',type:'button',onclick:()=>go({name:'items',box:'none'})},el('div',{class:'bar',style:'background:#bbb'},'?'),el('div',{class:'tx'},el('b',{},'아직 수납함을 안 정한 옷'),el('div',{class:'sum'},'눌러서 한꺼번에 옮길 수 있어요')),el('div',{class:'n'},none.length+'벌 ›')))}
+    res.append(el('div',{class:'btns',style:'margin:14px 0 30px'},el('button',{class:'btn ghost',type:'button',onclick:()=>boxSheet()},'+ 수납함 만들기'),el('button',{class:'btn ghost',type:'button',onclick:()=>roomSheet()},'+ 방(장소) 만들기')));
+  }
+  draw();
+}
+function boxRow(b){const n=inBox(b.id).length;return el('button',{class:'boxrow',type:'button',onclick:()=>go({name:'box',id:b.id})},el('div',{class:'bar',style:'background:'+colorOf(b.color)[2]},pad(b.code)),el('div',{class:'tx'},el('b',{},b.name||'이름 없는 수납함'),el('div',{class:'sum'},boxSummary(b))),el('div',{class:'n'},n+'벌 ›'))}
+function itemRow(i,onclick){return el('button',{class:'row',type:'button',onclick:onclick||(()=>itemSheet(i.id))},phEl(i.photoId),el('div',{class:'tx'},el('b',{},itemName(i)),el('span',{},itemMeta(i)||' '),i.status==='gone'?el('span',{},exitName(i.exit&&i.exit.type)+(i.exit&&i.exit.to?' · '+i.exit.to:'')+(i.exit&&i.exit.date?' · '+i.exit.date:'')):locChip(i)))}
+function itemCard(i){return el('button',{class:'it',type:'button',onclick:()=>itemSheet(i.id)},phEl(i.photoId),el('div',{class:'cap'},el('b',{},itemName(i)),el('span',{},[i.size,i.owner].filter(Boolean).join(' · ')||i.cat||' ')))}
+function welcome(){return el('div',{},
+  el('div',{class:'note',style:'margin-top:16px'},el('b',{},'우리집 옷장에 오신 걸 환영해요'),el('br'),'① 방(장소)을 만들고 ② 수납함(상자·서랍·옷장 칸)을 만든 뒤 ③ 옷을 사진과 함께 넣어요. ④ 설정 → 라벨 인쇄로 QR 라벨을 뽑아 상자에 붙이면, 폰 카메라로 찍기만 해도 안에 뭐가 있는지 보여요.'),
+  el('div',{class:'btns',style:'margin:10px 0'},el('button',{class:'btn',type:'button',onclick:()=>roomSheet()},'+ 방 만들기'),el('button',{class:'btn soft',type:'button',onclick:()=>boxSheet()},'+ 수납함 만들기')),
+  el('div',{class:'btns'},el('button',{class:'btn ghost',type:'button',onclick:()=>sample()},'예시로 둘러보기')),
+  el('p',{class:'msg',style:'text-align:center;margin-top:16px'},'기록과 사진은 이 폰 안에만 저장돼요. 가끔 설정 → 백업을 해 두세요.'))}
+function backupNag(){if(S.items.length<5)return null;const d=S.lastBackup?Math.floor((Date.now()-S.lastBackup)/864e5):null;if(d!==null&&d<30)return null;return el('div',{class:'warn'},el('span',{},d===null?'아직 백업을 안 했어요. 폰을 바꾸면 기록이 사라져요.':d+'일 동안 백업을 안 했어요.'),el('button',{class:'btn soft',type:'button',style:'padding:7px 10px',onclick:()=>tabGo('settings')},'백업하기'))}
+
+// ---------- 수납함 화면 ----------
+function vBox(m){
+  const b=boxOf(view.id);if(!b){topbar('수납함',true);m.append(el('div',{class:'empty'},'이 수납함이 없어요. 이 폰에 없는 수납함의 QR이거나 지워진 수납함이에요.'));return}
+  const r=roomOf(b.roomId),c=colorOf(b.color);
+  topbar(b.name||'수납함',true,el('button',{class:'iconbtn',type:'button','aria-label':'수납함 고치기',onclick:()=>boxSheet(b.id)},'✎'));
+  m.append(el('div',{class:'boxhead',style:'background:'+c[2]},el('div',{class:'code'},'#'+pad(b.code)),el('div',{},el('div',{class:'nm'},b.name||'이름 없는 수납함'),el('div',{class:'rm'},[r?r.name:'방 미정',c[1]+' 라벨',b.note].filter(Boolean).join(' · ')))));
+  const L=inBox(b.id);
+  m.append(el('div',{class:'btns',style:'margin:10px 0'},el('button',{class:'btn',type:'button',onclick:()=>itemSheet(null,{boxId:b.id})},'+ 옷 넣기'),el('button',{class:'btn soft',type:'button',onclick:()=>manySheet({boxId:b.id})},'여러 벌'),el('button',{class:'btn ghost',type:'button',onclick:()=>go({name:'labels',only:[b.id]})},'QR 라벨')));
+  if(b.photoId){m.append(el('h2',{class:'sec'},'상자 속 사진'));const bp=el('div',{class:'big-ph'},el('img',{alt:'상자 속 사진','data-ph':b.photoId,'data-full':'1',hidden:true}));m.append(bp)}
+  m.append(el('h2',{class:'sec'},'들어 있는 옷',el('span',{class:'cnt'},L.length+'벌')));
+  if(!L.length){m.append(el('div',{class:'empty'},'아직 비어 있어요. "+ 옷 넣기"로 넣거나, 옷 화면에서 이 상자로 옮겨요.'));return}
+  const g=el('div',{class:'grid'});L.slice().sort((a,b)=>(a.cat||'').localeCompare(b.cat||'')||(a.size||'').localeCompare(b.size||'',undefined,{numeric:true})).forEach(i=>g.append(itemCard(i)));m.append(g);
+  m.append(el('div',{style:'height:70px'}));
+}
+
+// ---------- 옷 전체 ----------
+let F={q:'',cat:'',owner:'',season:''};
+function vItems(m){
+  topbar(view.box==='none'?'위치 미정인 옷':'옷 전체',view.box==='none');
+  const res=el('div');
+  const inp=el('input',{type:'search',placeholder:'이름·브랜드·사이즈로 찾기',value:F.q,'aria-label':'옷 찾기',oninput:()=>{F.q=inp.value;draw()}});
+  m.append(el('div',{class:'search'},inp));
+  const fl=el('div',{class:'filters'});
+  const chipRow=(key,opts,allLabel)=>{const r=el('div',{class:'chips scroll'});const mk=(v,t)=>el('button',{class:'chip',type:'button','aria-pressed':String(F[key]===v),onclick:()=>{F[key]=F[key]===v&&v?'':v;rowsDraw();draw()}},t);r.append(mk('',allLabel));opts.forEach(o=>r.append(mk(o,o)));return r};
+  const rowsDraw=()=>{fl.textContent='';if(S.people.length)fl.append(chipRow('owner',[...S.people,'공용'],'모두'));fl.append(chipRow('cat',CATS.filter(c=>keep().some(i=>i.cat===c)),'모든 종류'));fl.append(chipRow('season',SEASONS,'모든 계절'))};
+  rowsDraw();m.append(fl,res);
+  function draw(){
+    res.textContent='';
+    let L=keep().filter(i=>(view.box!=='none'||!boxOf(i.boxId))&&(!F.cat||i.cat===F.cat)&&(!F.owner||i.owner===F.owner)&&(!F.season||(i.season||[]).includes(F.season))&&matchItem(i,F.q));
+    L.sort((a,b)=>(b.updated||0)-(a.updated||0));
+    const head=el('h2',{class:'sec'},L.length+'벌');
+    if(L.length)head.append(el('button',{class:'more',type:'button',onclick:()=>moveMany(L)},'보이는 옷 한꺼번에 옮기기'));
+    res.append(head);
+    if(!L.length){res.append(el('div',{class:'empty'},keep().length?'조건에 맞는 옷이 없어요.':'아직 등록한 옷이 없어요. 아래 + 를 눌러 넣어 보세요.'));return}
+    const list=el('div',{class:'list'});L.slice(0,400).forEach(i=>list.append(itemRow(i)));res.append(list);
+    if(L.length>400)res.append(el('div',{class:'empty'},'앞의 400벌만 보여요. 검색이나 필터로 좁혀 주세요.'));
+    fillPhotos(res);
+  }
+  draw();
+}
+function moveMany(L){pickBox('옮길 수납함 고르기 ('+L.length+'벌)',null,bid=>{L.forEach(i=>{i.boxId=bid;i.updated=Date.now()});changed();toast(L.length+'벌을 옮겼어요');render()})}
+
+// ---------- 정리함 ----------
+function vGone(m){
+  topbar('정리한 옷',false);
+  const G=S.items.filter(i=>i.status==='gone').sort((a,b)=>((b.exit&&b.exit.date)||'').localeCompare((a.exit&&a.exit.date)||''));
+  const cnt=k=>G.filter(i=>(i.exit&&i.exit.type)===k).length;
+  const sold=G.filter(i=>i.exit&&i.exit.type==='sell').reduce((a,i)=>a+(Number(i.exit.price)||0),0);
+  m.append(el('div',{class:'stat'},el('div',{},el('b',{},G.length),el('span',{},'정리한 옷')),el('div',{},el('b',{},cnt('give')+cnt('hand')),el('span',{},'기증·물려줌')),el('div',{},el('b',{},won(sold)),el('span',{},'판매 금액'))));
+  m.append(el('div',{class:'note'},'안 입는 옷은 옷 화면에서 "정리하기"를 누르면 여기로 와요. 판매는 당근마켓에 올릴 글을 만들어 줘요. 잘못 옮겼으면 눌러서 되돌릴 수 있어요.'));
+  if(!G.length){m.append(el('div',{class:'empty'},'아직 정리한 옷이 없어요.'));return}
+  const L=el('div',{class:'list'});G.forEach(i=>L.append(itemRow(i)));m.append(L);
+}
+
+// ---------- 설정 ----------
+function vSettings(m){
+  topbar('설정',false);
+  const card=(t,p,...kids)=>el('div',{class:'setcard'},el('h4',{},t),p?el('p',{},p):null,...kids);
+  const nm=el('input',{class:'inp',type:'text',value:S.name,maxlength:'20'});
+  m.append(card('옷장 이름','맨 위에 보이는 이름이에요.',el('div',{class:'tagrow'},nm,el('button',{type:'button',onclick:()=>{S.name=nm.value.trim()||'우리집 옷장';changed();toast('이름을 바꿨어요');document.title=S.name}},'저장'))));
+  m.append(card('방(장소)','수납함을 방별로 묶어 보여 줘요. 예: 안방 옷장, 아이방, 베란다 창고',listEditor(S.rooms,r=>r.name,(r,v)=>{r.name=v},()=>roomSheet(),async r=>{const n=S.boxes.filter(b=>b.roomId===r.id).length;if(n&&!await ask('"'+r.name+'" 지우기','이 방의 수납함 '+n+'개는 "방 미정"으로 옮겨져요.','지우기'))return false;S.rooms=S.rooms.filter(x=>x!==r);return true},true)));
+  m.append(card('누구 옷','가족 이름을 넣으면 옷마다 누구 것인지 고르고, 사람별로 모아 볼 수 있어요.',listEditor(S.people.map(p=>({p})),o=>o.p,(o,v)=>{const i=S.people.indexOf(o.p);if(i>=0){S.items.forEach(it=>{if(it.owner===o.p)it.owner=v});S.people[i]=v;o.p=v}},async()=>{const v=await askText('가족 이름 추가','예: 엄마, 선우');if(v&&!S.people.includes(v)){S.people.push(v);changed();render()}},o=>{S.people=S.people.filter(x=>x!==o.p);return true},false)));
+  m.append(card('QR 라벨 인쇄','A4 스티커 용지에 수납함 라벨을 한 번에 뽑아요. 폰 카메라로 라벨을 찍으면 이 앱에서 그 수납함이 열려요.',el('button',{class:'btn wide',type:'button',onclick:()=>go({name:'labels'})},'라벨 고르고 인쇄하기')));
+  const bm=el('div',{class:'msg'});
+  const last=S.lastBackup?new Date(S.lastBackup).toLocaleDateString('ko-KR'):'아직 안 함';
+  m.append(card('백업 · 다른 폰으로 옮기기','기록과 사진은 이 폰 안에만 있어요. 폰을 바꾸거나 인터넷 기록을 지우면 사라지니 가끔 백업 파일을 저장해 두세요. 마지막 백업: '+last,
+    el('div',{class:'btns'},el('button',{class:'btn',type:'button',onclick:()=>doBackup(true,bm)},'사진까지 저장'),el('button',{class:'btn soft',type:'button',onclick:()=>doBackup(false,bm)},'글만 저장(가벼움)')),
+    el('div',{class:'btns',style:'margin-top:8px'},el('button',{class:'btn ghost',type:'button',onclick:()=>doRestore(bm)},'백업 불러오기')),bm));
+  const sm=el('div',{class:'msg'},'확인 중…');
+  m.append(card('저장 공간',null,sm));
+  (async()=>{try{const e=navigator.storage&&navigator.storage.estimate?await navigator.storage.estimate():null;const per=navigator.storage&&navigator.storage.persisted?await navigator.storage.persisted():false;sm.textContent='옷 '+keep().length+'벌 · 수납함 '+S.boxes.length+'개 · 정리한 옷 '+(S.items.length-keep().length)+'벌'+(e?' · 사용 '+(e.usage/1048576).toFixed(1)+'MB':'')+(per?' · 자동 삭제 안 되게 보호됨':'')}catch(err){sm.textContent='옷 '+keep().length+'벌 · 수납함 '+S.boxes.length+'개'}})();
+  const wipe=el('button',{class:'btn bad wide',type:'button',onclick:async()=>{if(!wipe.dataset.sure){wipe.dataset.sure='1';wipe.textContent='한 번 더 누르면 모든 기록과 사진이 지워져요';return}const d=await openDB();await P(d.transaction('photos','readwrite').objectStore('photos').clear());S=BLANK();await save();urlCache.clear();toast('모두 지웠어요');tabGo('home')}},'처음부터 다시 (모두 지우기)');
+  m.append(card('처음부터 다시','예시로 둘러본 뒤 새로 시작할 때 써요. 지우기 전에 백업을 해 두세요.',wipe));
+  m.append(el('div',{class:'ver'},'앱 버전 ',el('b',{},VERSION)));
+}
+function listEditor(arr,get,set,add,del,movable){
+  const box=el('div');
+  const draw=()=>{box.textContent='';arr.forEach((o,ix)=>{const inp=el('input',{class:'inp',type:'text',value:get(o),onchange:()=>{const v=inp.value.trim();if(v){set(o,v);changed()}else inp.value=get(o)}});const r=el('div',{class:'tagrow'},inp);if(movable&&ix>0)r.append(el('button',{type:'button','aria-label':'위로',onclick:()=>{arr.splice(ix-1,0,arr.splice(ix,1)[0]);changed();draw()}},'▲'));r.append(el('button',{type:'button',onclick:async()=>{if(await del(o)!==false){changed();render()}}},'지우기'));box.append(r)});box.append(el('button',{class:'btn soft wide',type:'button',onclick:add},'+ 추가'))};
+  draw();return box;
+}
+
+// ---------- 시트(아래에서 올라오는 창) ----------
+let sheetStack=[];
+function sheet(title,build,onClose){
+  const bg=el('div',{class:'sheet-bg'});const sh=el('div',{class:'sheet',role:'dialog','aria-modal':'true','aria-label':title});
+  const close=()=>{bg.remove();sheetStack=sheetStack.filter(x=>x!==close);if(onClose)onClose()};
+  sh.append(el('div',{class:'grab'}),el('h3',{},title,el('button',{class:'iconbtn x',type:'button','aria-label':'닫기',onclick:close},'✕')));
+  bg.addEventListener('click',e=>{if(e.target===bg)close()});
+  build(sh,close);bg.append(sh);document.body.append(bg);sheetStack.push(close);fillPhotos(sh);
+  return close;
+}
+function ask(title,msg,ok){return new Promise(res=>{let done=false;const fin=v=>{if(!done){done=true;res(v)}};const c=sheet(title,(sh,close)=>{sh.append(el('p',{style:'margin:0 0 14px;white-space:pre-line'},msg),el('div',{class:'btns'},el('button',{class:'btn ghost',type:'button',onclick:()=>{fin(false);close()}},'취소'),el('button',{class:'btn',type:'button',onclick:()=>{fin(true);close()}},ok||'확인')))},()=>fin(false))})}
+function askText(title,ph){return new Promise(res=>{let done=false;const fin=v=>{if(!done){done=true;res(v)}};sheet(title,(sh,close)=>{const i=el('input',{class:'inp',type:'text',placeholder:ph||'',maxlength:'30'});const ok=()=>{const v=i.value.trim();if(!v){i.focus();return}fin(v);close()};i.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();ok()}});sh.append(i,el('button',{class:'btn wide',type:'button',style:'margin-top:12px',onclick:ok},'추가'));setTimeout(()=>i.focus(),60)},()=>fin(null))})}
+const field=(label,input)=>el('div',{class:'f'},el('label',{},label),input);
+function chipPick(opts,val,multi,onChange){const r=el('div',{class:'chips'});let cur=multi?new Set(val||[]):val||'';const draw=()=>{r.textContent='';opts.forEach(o=>{const on=multi?cur.has(o):cur===o;r.append(el('button',{class:'chip',type:'button','aria-pressed':String(on),onclick:()=>{if(multi){on?cur.delete(o):cur.add(o);onChange(opts.filter(x=>cur.has(x)))}else{cur=on?'':o;onChange(cur)}draw()}},o))})};draw();return r}
+function boxSelect(val,onChange){
+  const b=el('button',{class:'inp',type:'button',style:'text-align:left;display:flex;align-items:center;gap:6px'});
+  const draw=v=>{b.textContent='';const x=boxOf(v);if(x)b.append(el('i',{class:'dot',style:'background:'+colorOf(x.color)[2]}));b.append(x?boxLabel(x)+((roomOf(x.roomId)||{}).name?' · '+roomOf(x.roomId).name:''):'위치 미정 (나중에 정하기)',el('span',{style:'margin-left:auto;color:var(--muted)'},'›'))};
+  b.addEventListener('click',()=>pickBox('어디에 두나요?',val,v=>{val=v;draw(v);onChange(v)}));draw(val);return b;
+}
+function pickBox(title,cur,on){
+  sheet(title,(sh,close)=>{
+    const L=el('div',{class:'sel-list'});
+    const opt=(b)=>el('button',{class:'opt',type:'button',onclick:()=>{close();on(b?b.id:'')}},b?el('span',{class:'dot',style:'background:'+colorOf(b.color)[2]+';width:22px;height:22px;border-radius:6px'}):el('span',{class:'dot',style:'background:#ccc;width:22px;height:22px;border-radius:6px'}),el('span',{style:'flex:1'},b?boxLabel(b):'위치 미정'),(cur||'')===(b?b.id:'')?'✓':'');
+    const groups=S.rooms.map(r=>[r.name,S.boxes.filter(b=>b.roomId===r.id)]);const loose=S.boxes.filter(b=>!roomOf(b.roomId));if(loose.length)groups.push(['방 미정',loose]);
+    groups.forEach(([n,bs])=>{if(!bs.length)return;L.append(el('div',{class:'room'},n));bs.slice().sort((a,b)=>a.code-b.code).forEach(b=>L.append(opt(b)))});
+    L.append(el('div',{class:'room'},'기타'),opt(null));
+    sh.append(L,el('button',{class:'btn soft wide',type:'button',style:'margin-top:12px',onclick:()=>{close();boxSheet(null,null,id=>on(id))}},'+ 새 수납함 만들기'));
+  });
+}
+
+// 방
+function roomSheet(id){const r=id?roomOf(id):null;sheet(r?'방 고치기':'방(장소) 만들기',(sh,close)=>{const n=el('input',{type:'text',value:r?r.name:'',placeholder:'예: 안방 옷장, 아이방, 베란다 창고',maxlength:'30'});sh.append(field('이름',n),el('button',{class:'btn wide',type:'button',onclick:()=>{const v=n.value.trim();if(!v){n.focus();return}if(r)r.name=v;else S.rooms.push({id:'r'+uid(),name:v});changed();close();render()}},r?'저장':'만들기'));setTimeout(()=>n.focus(),60)})}
+
+// 수납함
+function boxSheet(id,roomId,onMade){
+  const b=id?boxOf(id):null;
+  const d=b?{...b}:{name:'',roomId:roomId||(S.rooms.length===1?S.rooms[0].id:''),color:COLORS[S.boxes.length%COLORS.length][0],note:'',photoId:''};
+  sheet(b?'수납함 고치기':'수납함 만들기',(sh,close)=>{
+    const nm=el('input',{type:'text',value:d.name,placeholder:'예: 겨울옷 상자, 서랍 2칸, 행거 왼쪽',maxlength:'30'});
+    sh.append(field('이름',nm));
+    const rs=el('select',{});rs.append(el('option',{value:''},'방 미정'));S.rooms.forEach(r=>rs.append(el('option',{value:r.id,selected:r.id===d.roomId?true:null},r.name)));
+    sh.append(field('어느 방(장소)에 있나요',el('div',{class:'tagrow'},rs,el('button',{type:'button',onclick:async()=>{const v=await askText('새 방 이름','예: 안방 옷장');if(v){const r={id:'r'+uid(),name:v};S.rooms.push(r);changed();rs.append(el('option',{value:r.id},r.name));rs.value=r.id}}},'+ 새 방'))));
+    const cs=el('div',{class:'colors'});const drawC=()=>{cs.textContent='';COLORS.forEach(c=>cs.append(el('button',{type:'button','aria-label':c[1],'aria-pressed':String(d.color===c[0]),style:'background:'+c[2],onclick:()=>{d.color=c[0];drawC()}})))};drawC();
+    sh.append(el('div',{class:'f'},el('div',{class:'lb'},'라벨 색 (같은 종류끼리 같은 색으로 하면 찾기 쉬워요)'),cs));
+    const nt=el('input',{type:'text',value:d.note,placeholder:'예: 110~120 사이즈, 위에서 두 번째',maxlength:'60'});sh.append(field('메모 (선택)',nt));
+    const pv=el('div',{class:'photo-pick'});const drawP=()=>{pv.textContent='';pv.append(phEl(d.photoId,false,'📦'),el('div',{class:'btns'},el('button',{class:'btn soft',type:'button',onclick:async()=>{const f=await pickFile($('fileCam'));if(f[0]){const old=d.photoId;d.photoId=await savePhoto(f[0]);if(old&&old!==(b&&b.photoId))dropPhoto(old);drawP()}}},'상자 속 사진 찍기'),d.photoId?el('button',{class:'btn ghost',type:'button',onclick:()=>{d.photoId='';drawP()}},'사진 빼기'):null));fillPhotos(pv)};drawP();
+    sh.append(el('div',{class:'f'},el('div',{class:'lb'},'상자 속 사진 (선택) — 한 벌씩 안 넣어도 안에 뭐가 있는지 보여요'),pv));
+    sh.append(el('button',{class:'btn wide',type:'button',onclick:()=>{
+      const o={name:nm.value.trim(),roomId:rs.value,color:d.color,note:nt.value.trim(),photoId:d.photoId};
+      if(b){if(b.photoId&&b.photoId!==o.photoId)dropPhoto(b.photoId);Object.assign(b,o);changed();close();render();return}
+      S.seq=(S.seq||0)+1;const nb={id:'b'+uid(),code:S.seq,...o};S.boxes.push(nb);changed();close();
+      if(onMade)onMade(nb.id);else{toast('#'+pad(nb.code)+' 수납함을 만들었어요');go({name:'box',id:nb.id})}
+    }},b?'저장':'만들기'));
+    if(b){const del=el('button',{class:'btn bad wide',type:'button',style:'margin-top:8px',onclick:()=>{const n=inBox(b.id).length;if(!del.dataset.sure){del.dataset.sure='1';del.textContent=n?'한 번 더 누르면 지워져요 (안의 '+n+'벌은 위치 미정으로)':'한 번 더 누르면 지워져요';return}S.items.forEach(i=>{if(i.boxId===b.id)i.boxId=''});if(b.photoId)dropPhoto(b.photoId);S.boxes=S.boxes.filter(x=>x!==b);changed();close();tabGo('home')}},'이 수납함 지우기');sh.append(del)}
+    if(!b)setTimeout(()=>nm.focus(),60);
+  });
+}
+
+// 옷 추가·고치기
+function itemForm(sh,d,photo){
+  if(photo){const pv=el('div',{class:'photo-pick'});const drawP=()=>{pv.textContent='';pv.append(phEl(d.photoId),el('div',{class:'btns'},el('button',{class:'btn soft',type:'button',onclick:()=>setP($('fileCam'))},'사진 찍기'),el('button',{class:'btn ghost',type:'button',onclick:()=>setP($('fileOne'))},'앨범에서 고르기')));fillPhotos(pv)};const setP=async inp=>{const f=await pickFile(inp);if(!f[0])return;try{const old=d.photoId;d.photoId=await savePhoto(f[0]);if(old&&old!==d._origPhoto)dropPhoto(old);drawP()}catch(e){toast(String(e.message||e))}};drawP();sh.append(pv)}
+  if(photo){const nm=el('input',{type:'text',value:d.name||'',placeholder:'예: 남색 롱패딩 (비워 두면 종류로 보여요)',maxlength:'40',oninput:()=>d.name=nm.value});sh.append(field('이름',nm))}
+  sh.append(el('div',{class:'f'},el('div',{class:'lb'},'종류'),chipPick(CATS,d.cat,false,v=>d.cat=v)));
+  if(S.people.length)sh.append(el('div',{class:'f'},el('div',{class:'lb'},'누구 옷'),chipPick([...S.people,'공용'],d.owner,false,v=>d.owner=v)));
+  const sz=el('input',{type:'text',value:d.size||'',placeholder:'예: M, 95, 110, 240',maxlength:'12',oninput:()=>d.size=sz.value.trim()});
+  const br=el('input',{type:'text',value:d.brand||'',placeholder:'선택',maxlength:'20',list:'brandList',oninput:()=>d.brand=br.value.trim()});
+  const dl=el('datalist',{id:'brandList'});[...new Set(S.items.map(i=>i.brand).filter(Boolean))].slice(0,50).forEach(x=>dl.append(el('option',{value:x})));
+  sh.append(el('div',{class:'two'},field('사이즈',sz),field('브랜드',br)),dl);
+  sh.append(el('div',{class:'f'},el('div',{class:'lb'},'계절 (여러 개 고를 수 있어요)'),chipPick(SEASONS,d.season,true,v=>d.season=v)));
+  sh.append(field('어디에 두나요',boxSelect(d.boxId,v=>d.boxId=v)));
+  if(photo){const me=el('textarea',{rows:'2',placeholder:'예: 작년에 선물 받음, 단추 하나 없음',maxlength:'200',oninput:()=>d.memo=me.value},d.memo||'');sh.append(field('메모 (선택)',me))}
+}
+function itemSheet(id,preset){
+  const it=id?itemOf(id):null;
+  if(it&&!preset&&!itemSheet._edit){return itemDetail(it)}
+  itemSheet._edit=false;
+  const d=it?{...it,season:(it.season||[]).slice(),_origPhoto:it.photoId}:{name:'',cat:'',owner:'',size:'',brand:'',season:[],boxId:'',memo:'',photoId:'',...(preset||{})};
+  sheet(it?'옷 고치기':'옷 넣기',(sh,close)=>{
+    itemForm(sh,d,true);
+    sh.append(el('button',{class:'btn wide',type:'button',onclick:()=>{
+      const o={name:(d.name||'').trim(),cat:d.cat,owner:d.owner,size:d.size,brand:d.brand,season:d.season,boxId:d.boxId,memo:(d.memo||'').trim(),photoId:d.photoId,updated:Date.now()};
+      if(it){if(it.photoId&&it.photoId!==o.photoId)dropPhoto(it.photoId);Object.assign(it,o);changed();close();render();toast('저장했어요');return}
+      S.items.push({id:'i'+uid(),status:'keep',created:Date.now(),...o});changed();close();render();
+      toast((o.boxId?locText(o):'위치 미정')+'에 넣었어요');
+    }},it?'저장':'넣기'));
+    if(!it)sh.append(el('button',{class:'btn ghost wide',type:'button',style:'margin-top:8px',onclick:()=>{close();if(d.photoId)dropPhoto(d.photoId);manySheet({boxId:d.boxId})}},'사진 여러 장으로 한 번에 넣기'));
+  });
+}
+function itemDetail(it){
+  sheet(itemName(it),(sh,close)=>{
+    sh.append(el('div',{class:'big-ph'},it.photoId?el('img',{alt:itemName(it),'data-ph':it.photoId,'data-full':'1',hidden:true}):'👕'));
+    const kv=el('dl',{class:'kv'});const add=(k,v)=>{if(v)kv.append(el('dt',{},k),el('dd',{},v))};
+    add('종류',it.cat);add('누구 옷',it.owner);add('사이즈',it.size);add('계절',(it.season||[]).length===4?'사계절':(it.season||[]).join(', '));add('브랜드',it.brand);add('메모',it.memo);
+    if(it.status==='gone'){const e=it.exit||{};add('정리',exitName(e.type)+(e.to?' · '+e.to:'')+(e.price?' · '+won(e.price):''));add('날짜',e.date);const lb=boxOf(it.lastBoxId);add('있던 곳',lb?boxLabel(lb):'')}
+    sh.append(kv);
+    if(it.status!=='gone'){
+      const b=boxOf(it.boxId);
+      sh.append(el('div',{class:'f'},el('div',{class:'lb'},'있는 곳'),el('button',{class:'inp',type:'button',style:'text-align:left;display:flex;gap:6px;align-items:center',onclick:()=>{if(b){close();go({name:'box',id:b.id})}else moveOne(it,close)}},b?el('i',{class:'dot',style:'background:'+colorOf(b.color)[2]}):null,locText(it),el('span',{style:'margin-left:auto;color:var(--accent)'},b?'수납함 보기 ›':'정하기 ›'))));
+      sh.append(el('div',{class:'btns'},el('button',{class:'btn soft',type:'button',onclick:()=>moveOne(it,close)},'옮기기'),el('button',{class:'btn ghost',type:'button',onclick:()=>{close();itemSheet._edit=true;itemSheet(it.id)}},'고치기')));
+      sh.append(el('button',{class:'btn wide',type:'button',style:'margin-top:8px;background:#25242a',onclick:()=>{close();exitSheet(it)}},'정리하기 (기증·판매·물려줌·버림)'));
+    }else{
+      if(it.exit&&it.exit.type==='sell')sh.append(el('button',{class:'btn soft wide',type:'button',onclick:()=>copySell(it,it.exit.price)},'당근 판매 글 다시 복사'));
+      sh.append(el('button',{class:'btn wide',type:'button',style:'margin-top:8px',onclick:()=>{it.status='keep';it.boxId=boxOf(it.lastBoxId)?it.lastBoxId:'';it.updated=Date.now();changed();close();render();toast('옷장으로 되돌렸어요')}},'옷장으로 되돌리기'));
+      const del=el('button',{class:'btn bad wide',type:'button',style:'margin-top:8px',onclick:()=>{if(!del.dataset.sure){del.dataset.sure='1';del.textContent='한 번 더 누르면 사진까지 완전히 지워져요';return}if(it.photoId)dropPhoto(it.photoId);S.items=S.items.filter(x=>x!==it);changed();close();render()}},'완전히 지우기');sh.append(del);
+    }
+  });
+}
+function moveOne(it,closeParent){pickBox('어디로 옮길까요?',it.boxId,v=>{it.boxId=v;it.updated=Date.now();changed();if(closeParent)closeParent();render();toast(v?locText(it)+'(으)로 옮겼어요':'위치 미정으로 바꿨어요')})}
+function exitSheet(it){
+  const e={type:'give',to:'',date:today(),price:''};
+  sheet('정리하기 — '+itemName(it),(sh,close)=>{
+    const pr=el('input',{type:'number',inputmode:'numeric',placeholder:'예: 15000',min:'0',oninput:()=>e.price=pr.value});
+    const prF=field('판매 가격(원)',pr);prF.hidden=true;
+    sh.append(el('div',{class:'f'},el('div',{class:'lb'},'어떻게 정리했나요'),chipPick(EXITS.map(x=>x[1]),'기증',false,v=>{e.type=(EXITS.find(x=>x[1]===v)||EXITS[0])[0];prF.hidden=e.type!=='sell';cp.hidden=e.type!=='sell'})));
+    const to=el('input',{type:'text',placeholder:'예: 아름다운가게, 사촌 동생, 당근',maxlength:'30',oninput:()=>e.to=to.value.trim()});
+    const dt=el('input',{type:'date',value:e.date,oninput:()=>e.date=dt.value});
+    sh.append(el('div',{class:'two'},field('받는 곳 (선택)',to),field('날짜',dt)),prF);
+    const cp=el('button',{class:'btn soft wide',type:'button',hidden:true,onclick:()=>copySell(it,e.price)},'당근마켓 판매 글 복사하기');sh.append(cp);
+    sh.append(el('button',{class:'btn wide',type:'button',style:'margin-top:8px',onclick:()=>{it.exit={type:e.type,to:e.to,date:e.date,price:e.type==='sell'?Number(e.price)||0:0};it.lastBoxId=it.boxId;it.boxId='';it.status='gone';it.updated=Date.now();changed();close();render();toast('정리함으로 옮겼어요')}},'정리 완료'));
+  });
+}
+function sellText(it,price){const t=[it.brand?'['+it.brand+'] ':'',itemName(it),it.size?' ('+it.size+')':''].join('');return [t,'',[it.cat,(it.season||[]).length===4?'사계절':(it.season||[]).join('·')].filter(Boolean).join(' · '),it.memo?it.memo:'',price?'가격: '+won(price):'','','깨끗하게 보관했어요. 편하게 연락 주세요 :)'].filter((x,i,a)=>x!==''||(a[i-1]!==''&&i>0)).join('\n').trim()}
+async function copySell(it,price){const t=sellText(it,price);try{await navigator.clipboard.writeText(t);toast('판매 글을 복사했어요. 당근마켓에 붙여넣으세요')}catch(e){sheet('판매 글',sh=>{const ta=el('textarea',{class:'inp',rows:'8',readonly:true},t);sh.append(el('p',{class:'msg'},'자동 복사가 안 돼요. 아래 글을 길게 눌러 전체 선택 → 복사하세요.'),ta);setTimeout(()=>ta.select(),80)})}}
+
+// 여러 벌 한 번에
+async function manySheet(preset){
+  const files=await pickFile($('fileMany'));if(!files.length)return;
+  const d={cat:'',owner:'',size:'',brand:'',season:[],boxId:'',...(preset||{})};
+  sheet('사진 '+files.length+'장 → '+files.length+'벌 넣기',(sh,close)=>{
+    sh.append(el('div',{class:'note'},'사진 1장이 옷 1벌이 돼요. 아래에서 고른 내용이 모두에게 똑같이 들어가요. 이름·사이즈가 다른 건 나중에 하나씩 고치면 돼요.'));
+    const strip=el('div',{class:'chips scroll',style:'margin-bottom:12px'});files.slice(0,30).forEach(f=>{const u=URL.createObjectURL(f);strip.append(el('img',{src:u,alt:'',style:'width:56px;height:56px;object-fit:cover;border-radius:8px;flex:none'}))});sh.append(strip);
+    itemForm(sh,d,false);
+    const msg=el('div',{class:'msg'});
+    const go2=el('button',{class:'btn wide',type:'button',onclick:async()=>{go2.disabled=true;let n=0;for(const f of files){try{msg.textContent='사진 줄이는 중… '+(++n)+'/'+files.length;const pid=await savePhoto(f);S.items.push({id:'i'+uid(),status:'keep',created:Date.now(),updated:Date.now(),name:'',cat:d.cat,owner:d.owner,size:d.size,brand:d.brand,season:d.season,boxId:d.boxId,memo:'',photoId:pid})}catch(e){}}changed();close();render();toast(n+'벌을 넣었어요')}},files.length+'벌 넣기');
+    sh.append(go2,msg);
+  });
+}
+function addMenu(){sheet('무엇을 할까요?',(sh,close)=>{
+  const b=view.name==='box'?view.id:'';
+  sh.append(el('div',{class:'btns',style:'flex-direction:column'},
+    el('button',{class:'btn',type:'button',onclick:()=>{close();itemSheet(null,{boxId:b})}},'옷 한 벌 넣기 (사진 찍기)'),
+    el('button',{class:'btn soft',type:'button',onclick:()=>{close();manySheet({boxId:b})}},'사진 여러 장으로 한 번에 넣기'),
+    el('button',{class:'btn ghost',type:'button',onclick:()=>{close();boxSheet()}},'수납함 만들기'),
+    el('button',{class:'btn ghost',type:'button',onclick:()=>{close();roomSheet()}},'방(장소) 만들기')));
+})}
+
+// ---------- QR 라벨 ----------
+function boxURL(b){return location.origin+location.pathname.replace(/index\.html$/,'')+'#box='+b.id}
+function qrSVG(text){const q=qrcode(0,'M');q.addData(text);q.make();const n=q.getModuleCount();let p='';for(let r=0;r<n;r++)for(let c=0;c<n;c++)if(q.isDark(r,c))p+='M'+c+' '+r+'h1v1h-1z';return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="-2 -2 '+(n+4)+' '+(n+4)+'" shape-rendering="crispEdges"><rect x="-2" y="-2" width="'+(n+4)+'" height="'+(n+4)+'" fill="#fff"/><path d="'+p+'" fill="#000"/></svg>'}
+function labelEl(b){const c=colorOf(b.color),r=roomOf(b.roomId);return el('div',{class:'lab'},el('div',{class:'lt',style:'background:'+c[2]},el('b',{},'#'+pad(b.code)),el('span',{},r?r.name:'')),el('div',{class:'lb',html:qrSVG(boxURL(b))},el('div',{class:'t'},b.name||'수납함',el('small',{},'폰 카메라로 찍으면 안에 든 옷이 보여요'))))}
+let lblSize='big';
+function vLabels(m){
+  topbar('QR 라벨 인쇄',true);
+  if(!S.boxes.length){m.append(el('div',{class:'empty'},'먼저 수납함을 만들어 주세요.'));return}
+  const sel=new Set(view.only||S.boxes.map(b=>b.id));
+  m.append(el('div',{class:'note'},'A4 스티커 용지(예: 폼텍 전지 라벨)나 일반 종이에 인쇄해서 오려 붙여요. 인쇄 창에서 "PDF로 저장"을 고르면 파일로도 받을 수 있어요. 라벨은 수납함 이름을 바꿔도 다시 뽑을 필요 없어요(QR은 그대로).'));
+  m.append(el('div',{class:'f'},el('div',{class:'lb'},'라벨 크기'),chipPick(['크게 (한 장에 8개)','작게 (한 장에 21개)'],lblSize==='big'?'크게 (한 장에 8개)':'작게 (한 장에 21개)',false,v=>{lblSize=v.startsWith('크게')?'big':'small';prev()})));
+  const pk=el('div',{class:'lblpick card',style:'padding:4px 12px'});
+  const all=el('input',{type:'checkbox',checked:sel.size===S.boxes.length?true:null,onchange:()=>{S.boxes.forEach(b=>all.checked?sel.add(b.id):sel.delete(b.id));drawPk();prev()}});
+  pk.append(el('label',{class:'opt'},all,el('b',{},'모두 고르기')));
+  const items=el('div');pk.append(items);
+  const drawPk=()=>{items.textContent='';S.boxes.slice().sort((a,b)=>a.code-b.code).forEach(b=>{const cb=el('input',{type:'checkbox',checked:sel.has(b.id)?true:null,onchange:()=>{cb.checked?sel.add(b.id):sel.delete(b.id);prev()}});items.append(el('label',{class:'opt'},cb,el('span',{class:'dot',style:'background:'+colorOf(b.color)[2]}),boxLabel(b)))})};drawPk();
+  m.append(pk);
+  const pv=el('div',{class:'preview'});
+  const prev=()=>{pv.textContent='';const g=el('div',{class:'sheetp'+(lblSize==='big'?'':' s3')});S.boxes.filter(b=>sel.has(b.id)).sort((a,b)=>a.code-b.code).forEach(b=>g.append(labelEl(b)));pv.append(g);pr.textContent=sel.size?sel.size+'개 인쇄하기':'라벨을 골라 주세요';pr.disabled=!sel.size};
+  const pr=el('button',{class:'btn wide',type:'button',style:'margin-top:12px',onclick:()=>{if(PREVIEW){toast('미리보기에서는 인쇄가 안 돼요. 실제 앱에서 인쇄할 수 있어요');return}const a=$('printArea');a.textContent='';a.append(pv.firstChild.cloneNode(true));window.print()}});
+  m.append(pr,el('h2',{class:'sec'},'미리 보기'),pv,el('div',{style:'height:30px'}));prev();
+}
+
+// ---------- QR 찍기 ----------
+$('fab').addEventListener('click',scan);
+async function scan(){
+  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){toast('이 브라우저는 카메라를 못 써요. 폰 기본 카메라로 라벨을 찍어도 돼요');return}
+  const bg=el('div',{class:'scan-bg'});const v=el('video',{playsinline:true,muted:true,autoplay:true});const info=el('p',{},'라벨의 QR을 네모 안에 맞춰 주세요');
+  let stream=null,stop=false;const close=()=>{stop=true;if(stream)stream.getTracks().forEach(t=>t.stop());bg.remove()};
+  bg.append(v,el('div',{class:'frame'}),el('div',{class:'bar'},info,el('button',{class:'btn ghost',type:'button',onclick:close},'닫기')));document.body.append(bg);
+  try{stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'},audio:false});v.srcObject=stream;await v.play()}catch(e){info.textContent='카메라를 켤 수 없어요. 카메라 권한을 허용하거나, 폰 기본 카메라로 라벨을 찍어 주세요.';return}
+  let det=null;try{if('BarcodeDetector' in window){const f=await BarcodeDetector.getSupportedFormats();if(f.includes('qr_code'))det=new BarcodeDetector({formats:['qr_code']})}}catch(e){}
+  if(!det){try{await loadScript('jsQR.js')}catch(e){info.textContent='QR 읽기를 불러오지 못했어요. 폰 기본 카메라로 찍어 주세요.';return}}
+  const c=document.createElement('canvas'),ctx=c.getContext('2d',{willReadFrequently:true});
+  const tick=async()=>{if(stop)return;let txt=null;try{if(v.readyState>=2){if(det){const r=await det.detect(v);if(r[0])txt=r[0].rawValue}else{const w=v.videoWidth,h=v.videoHeight,s=Math.min(1,640/Math.max(w,h));c.width=w*s;c.height=h*s;ctx.drawImage(v,0,0,c.width,c.height);const r=jsQR(ctx.getImageData(0,0,c.width,c.height).data,c.width,c.height,{inversionAttempts:'dontInvert'});if(r)txt=r.data}}}catch(e){}
+    if(txt){const id=boxIdFrom(txt);if(id){close();if(navigator.vibrate)navigator.vibrate(60);openBox(id);return}info.textContent='이 앱의 라벨이 아니에요'}
+    setTimeout(tick,180)};tick();
+}
+function loadScript(src){return new Promise((res,rej)=>{if(window.jsQR)return res();const s=document.createElement('script');s.src=src;s.onload=res;s.onerror=rej;document.head.append(s)})}
+function boxIdFrom(t){const m=String(t).match(/#box=([\w-]+)/);return m?m[1]:null}
+function openBox(id){if(boxOf(id)){hist.length=0;hist.push({name:'home'});view={name:'box',id};render();scrollTo(0,0)}else{toast('이 폰에 없는 수납함이에요. 이 라벨을 만든 폰의 백업을 불러와 주세요')}}
+function fromHash(){const id=boxIdFrom(location.hash);if(id){openBox(id);history.replaceState(null,'',location.pathname+location.search)}}
+window.addEventListener('hashchange',fromHash);
+
+// ---------- 백업 ----------
+const blobToData=b=>new Promise(res=>{const r=new FileReader();r.onload=()=>res(r.result);r.readAsDataURL(b)});
+const dataToBlob=async u=>(await fetch(u)).blob();
+async function doBackup(withPhotos,msg){
+  try{msg.textContent='백업 파일 만드는 중…';
+    const photos={};if(withPhotos){const d=await openDB();const st=d.transaction('photos').objectStore('photos');const keys=await P(st.getAllKeys());let n=0;for(const k of keys){const r=await phGet(k);if(!r)continue;photos[k]={full:r.full?await blobToData(r.full):null,thumb:r.thumb?await blobToData(r.thumb):null};if(++n%20===0)msg.textContent='사진 담는 중… '+n+'/'+keys.length}}
+    S.lastBackup=Date.now();await save();
+    const data={app:'closet',v:1,at:new Date().toISOString(),withPhotos,state:S,photos};
+    const blob=new Blob([JSON.stringify(data)],{type:'application/json'});
+    const d=new Date(),name='closet_backup_'+d.getFullYear()+pad(d.getMonth()+1)+pad(d.getDate())+(withPhotos?'':'_text')+'.json';
+    const file=new File([blob],name,{type:'application/json'});
+    if(!PREVIEW&&navigator.canShare&&navigator.canShare({files:[file]})&&await ask('백업 파일 보내기','카톡·드라이브로 바로 보낼까요?\n아니면 폰에 파일로 저장해요.','보내기')){try{await navigator.share({files:[file],title:name});msg.textContent=name+' 을 보냈어요.';return}catch(e){}}
+    if(PREVIEW){msg.textContent='미리보기에서는 파일 저장이 안 돼요. 실제 앱에서 할 수 있어요.';return}
+    const a=el('a',{href:URL.createObjectURL(blob),download:name});document.body.append(a);a.click();a.remove();
+    msg.textContent=name+' ('+(blob.size/1048576).toFixed(1)+'MB) 을 저장했어요. 카톡 나에게 보내기나 드라이브에 올려 두면 안전해요.';
+  }catch(e){msg.textContent='백업하지 못했어요: '+(e&&e.message||e)}
+}
+async function doRestore(msg){
+  const f=(await pickFile($('fileBackup')))[0];if(!f)return;
+  try{msg.textContent='읽는 중…';const j=JSON.parse(await f.text());if(!j||j.app!=='closet'||!j.state)throw new Error('옷장 백업 파일이 아니에요');
+    const st=j.state,n=(st.items||[]).length;
+    if(!await ask('백업 불러오기','옷 '+n+'벌, 수납함 '+(st.boxes||[]).length+'개'+(j.withPhotos?' (사진 포함)':' (사진 없음)')+'인 백업이에요.\n지금 이 폰의 기록은 이 백업으로 바뀌어요.','불러오기')){msg.textContent='';return}
+    const d=await openDB();await P(d.transaction('photos','readwrite').objectStore('photos').clear());urlCache.clear();
+    let k=0;const ids=Object.keys(j.photos||{});for(const id of ids){const p=j.photos[id];await phSet(id,{full:p.full?await dataToBlob(p.full):null,thumb:p.thumb?await dataToBlob(p.thumb):null});if(++k%20===0)msg.textContent='사진 넣는 중… '+k+'/'+ids.length}
+    if(!j.withPhotos){(st.items||[]).forEach(i=>i.photoId='');(st.boxes||[]).forEach(b=>b.photoId='')}
+    S=Object.assign(BLANK(),st);await save();msg.textContent='불러왔어요';toast('백업을 불러왔어요');document.title=S.name;tabGo('home');
+  }catch(e){msg.textContent='불러오지 못했어요: '+(e&&e.message||e)}
+}
+
+// ---------- 예시 ----------
+function sample(){
+  const r1={id:'r'+uid(),name:'안방 옷장'},r2={id:'r'+uid(),name:'아이방'},r3={id:'r'+uid(),name:'베란다 창고'};S.rooms.push(r1,r2,r3);
+  const mk=(name,roomId,color,note)=>{S.seq++;const b={id:'b'+uid(),code:S.seq,name,roomId,color,note,photoId:''};S.boxes.push(b);return b};
+  const a=mk('겨울 아우터 상자',r3.id,'blue','리빙박스 큰 것'),b=mk('여름옷 상자',r3.id,'yellow',''),c=mk('서랍 1칸 (내복)',r2.id,'green',''),e=mk('행거 왼쪽',r1.id,'red','');
+  S.people=['엄마','아빠','선우'];
+  const it=(name,cat,owner,size,season,boxId,brand)=>S.items.push({id:'i'+uid(),status:'keep',created:Date.now(),updated:Date.now(),name,cat,owner,size,season,boxId,brand:brand||'',memo:'',photoId:''});
+  it('남색 롱패딩','아우터','엄마','66',['겨울'],a.id,'');it('검정 숏패딩','아우터','아빠','105',['겨울'],a.id,'');it('곰돌이 우주복','아우터','선우','90',['겨울'],a.id,'');
+  it('린넨 셔츠','상의','아빠','100',['여름'],b.id,'');it('반바지 2벌','하의','선우','100',['여름'],b.id,'');
+  it('수면 내복','속옷·잠옷','선우','100',['가을','겨울'],c.id,'');it('기모 내복','속옷·잠옷','선우','110',['겨울'],c.id,'');
+  it('베이지 트렌치코트','아우터','엄마','55',['봄','가을'],e.id,'');it('회색 니트','니트·가디건','엄마','free',['가을','겨울'],e.id,'');it('청바지','하의','엄마','27',['봄','가을','겨울'],'','');
+  changed();render();toast('예시를 넣었어요. 설정 → 처음부터 다시로 지울 수 있어요');
+}
+
+// ---------- 알림 ----------
+let toastT=null;function toast(t){document.querySelectorAll('.toast').forEach(x=>x.remove());const e=el('div',{class:'toast',role:'status'},t);document.body.append(e);clearTimeout(toastT);toastT=setTimeout(()=>e.remove(),2600)}
+
+// ---------- 시작 ----------
+(async()=>{
+  try{const st=await kvGet('state');if(st)S=Object.assign(BLANK(),st)}catch(e){$('main').append(el('div',{class:'warn'},'저장소를 열 수 없어요. 시크릿 모드라면 일반 창으로 열어 주세요.'))}
+  document.title=S.name;render();fromHash();
+})();
+window.__closet={get S(){return S},render};
+})();
+</script>
+<script>if('serviceWorker' in navigator){window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{})})}</script>
+</body>
+</html>

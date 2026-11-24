@@ -1,0 +1,29 @@
+{
+ "name": "우리집 옷장",
+ "short_name": "옷장",
+ "start_url": "./",
+ "scope": "./",
+ "display": "standalone",
+ "background_color": "#f6f5f2",
+ "theme_color": "#f6f5f2",
+ "lang": "ko",
+ "description": "상자에 QR 라벨을 붙이고 어디에 무슨 옷이 있는지 찾는 옷장 정리 앱. 기록은 내 폰에만 저장돼요.",
+ "icons": [
+  {
+   "src": "icons/icon-192.png",
+   "sizes": "192x192",
+   "type": "image/png"
+  },
+  {
+   "src": "icons/icon-512.png",
+   "sizes": "512x512",
+   "type": "image/png"
+  },
+  {
+   "src": "icons/icon-512-maskable.png",
+   "sizes": "512x512",
+   "type": "image/png",
+   "purpose": "maskable"
+  }
+ ]
+}
